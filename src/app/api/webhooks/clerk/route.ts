@@ -10,7 +10,7 @@ import getEnv from '@/app/config'
 
 async function validateRequest(request: Request, secret: string) {
   const payloadString = await request.text()
-  const headerPayload = headers()
+  const headerPayload = await headers()
 
   const svixHeaders = {
     'svix-id': headerPayload.get('svix-id')!,
