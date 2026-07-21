@@ -1,13 +1,11 @@
 import { authMiddleware } from "@clerk/nextjs";
- 
+
+// Clerk is present but unused for V0-V2.
+// All routes are public - no authentication required.
 export default authMiddleware({
-  // Routes that can be accessed while signed out
-  publicRoutes: ['/api/webhooks/clerk']
+  publicRoutes: ['/(.*)']
 });
 
 export const config = {
-  // Protects all routes, including api/trpc.
-  // See https://clerk.com/docs/references/nextjs/auth-middleware
-  // for more information about configuring your Middleware
   matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)", '/__clerk/:path*'],
 };
