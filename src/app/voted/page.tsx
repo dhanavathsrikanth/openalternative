@@ -16,7 +16,8 @@ const voteAndGetData = async (elementId?: string) => {
   const user = await currentUser()
 
   if (!user) {
-    throw new Error('user must be defined')
+    log.warn('user not authenticated when voting')
+    return redirect('/sign-in')
   }
 
   const existingVote = await db
@@ -27,7 +28,6 @@ const voteAndGetData = async (elementId?: string) => {
     )
 
   if (existingVote[0]) {
-    // User has already voted, update it
     log.info(`updating user ${user.id} vote`)
     return db
       .update(ElementVotes)
@@ -54,7 +54,12 @@ export default async function Voted({
 }) {
   const { elementId } = searchParams
 
-  await voteAndGetData(elementId as string)
+  try {
+    await voteAndGetData(elementId as string)
+  } catch (error) {
+    log.error('failed to process vote', error)
+    return redirect('/')
+  }
   
   return redirect(`/?element=${elementId}`)
 }

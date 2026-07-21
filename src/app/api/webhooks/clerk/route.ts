@@ -6,6 +6,7 @@ import { Webhook } from 'svix'
 import { Users } from '@/app/db/schema'
 import { log } from '@/app/log'
 import { eq } from 'drizzle-orm'
+import getEnv from '@/app/config'
 
 async function validateRequest(request: Request, secret: string) {
   const payloadString = await request.text()
@@ -27,11 +28,8 @@ async function validateRequest(request: Request, secret: string) {
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
-  if (!process.env.CLERK_WEBHOOK_SECRET) {
-    throw new Error('CLERK_WEBHOOK_SECRET environment variable is missing')
-  }
-
-  const payload = await validateRequest(req, process.env.CLERK_WEBHOOK_SECRET)
+  const config = getEnv(process.env)
+  const payload = await validateRequest(req, config.CLERK_WEBHOOK_SECRET)
 
   if (!payload) {
     return NextResponse.json(
@@ -51,7 +49,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   } else {
     log.warn(`${req.url} received event type "${type}", but no handler is defined for this type`)
     return NextResponse.json({
-      error: `uncreognised payload type: ${type}`
+      error: `unrecognised payload type: ${type}`
     }, {
       status: 400
     })
@@ -59,19 +57,34 @@ export async function POST(req: Request): Promise<NextResponse> {
 }
 
 async function createUser(id: string, createdAt: number) {
-  log.info('creating user due to clerk webhook')
-  await db.insert(Users).values({
-    id,
-    clerkCreateTs: new Date(createdAt)
-  })
+  try {
+    log.info('creating user due to clerk webhook')
+    await db.insert(Users).values({
+      id,
+      clerkCreateTs: new Date(createdAt)
+    })
 
-  return NextResponse.json({
-    message: 'user created'
-  }, { status: 200 })
+    return NextResponse.json({
+      message: 'user created'
+    }, { status: 200 })
+  } catch (error) {
+    log.error('failed to create user', error)
+    return NextResponse.json(
+      { error: 'failed to create user' },
+      { status: 500 }
+    )
+  }
 }
 
 async function deleteUser(id?: string) {
-  if (id) {
+  if (!id) {
+    log.warn('clerk sent a delete user request, but no user ID was included in the payload')
+    return NextResponse.json({
+      message: 'ok'
+    }, { status: 200 })
+  }
+
+  try {
     log.info('delete user due to clerk webhook')
     await db.delete(Users).where(
       eq(Users.id, id)
@@ -80,10 +93,11 @@ async function deleteUser(id?: string) {
     return NextResponse.json({
       message: 'user deleted'
     }, { status: 200 })
-  } else {
-    log.warn('clerk sent a delete user request, but no user ID was included in the payload')
-    return NextResponse.json({
-      message: 'ok'
-    }, { status: 200 })
+  } catch (error) {
+    log.error('failed to delete user', error)
+    return NextResponse.json(
+      { error: 'failed to delete user' },
+      { status: 500 }
+    )
   }
 }

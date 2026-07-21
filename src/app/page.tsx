@@ -4,6 +4,7 @@ import { eq, sql } from 'drizzle-orm'
 import { currentUser } from '@clerk/nextjs';
 import { ElementComponent } from "./components/element";
 import Link from 'next/link'
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,7 @@ const getData = async () => {
   const user = await currentUser()
 
   if (!user) {
-    throw new Error('user must be defined')
+    redirect('/sign-in')
   }
 
   const vote = await db.select().from(ElementVotes).where(
