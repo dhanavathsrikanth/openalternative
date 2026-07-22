@@ -3,6 +3,7 @@ import { db } from '@/app/db'
 import { Contributions, Contributors, Products } from '@/app/db/schema'
 import { eq, sql } from 'drizzle-orm'
 import { verifySecret } from '@/lib/cron-auth'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -76,6 +77,18 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       })
       .where(eq(Contributors.id, contribution.contributorId))
   }
+
+  const posthog = getPostHogClient()
+  posthog.capture({
+    distinctId: `contributor_${contribution.contributorId}`,
+    event: 'moderation_contribution_reviewed',
+    properties: {
+      contribution_id: contributionId,
+      product_id: contribution.productId,
+      decision: status,
+    },
+  })
+  await posthog.flush()
 
   return NextResponse.json({ message: `Contribution ${status}` })
 }

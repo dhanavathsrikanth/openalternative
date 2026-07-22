@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { LicenseBadge } from '@/app/products/[slug]/LicenseBadge'
 import Link from 'next/link'
+import posthog from 'posthog-js'
 
 interface SearchResult {
   id: number
@@ -81,6 +82,12 @@ export function SearchPage({ initialQuery, initialLicense, initialLanguage, init
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
+    posthog.capture('search_performed', {
+      query: query.trim(),
+      license_filter: license || null,
+      language_filter: language || null,
+      deployment_filter: deployment || null,
+    })
     const params = new URLSearchParams()
     if (query.trim()) params.set('q', query.trim())
     if (license) params.set('license', license)

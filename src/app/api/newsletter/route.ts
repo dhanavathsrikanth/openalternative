@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/app/db'
 import { NewsletterSubscribers } from '@/app/db/schema'
 import { eq } from 'drizzle-orm'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -22,6 +23,13 @@ export async function POST(req: NextRequest) {
   }
 
   await db.insert(NewsletterSubscribers).values({ email: email.toLowerCase().trim() })
+
+  const posthog = getPostHogClient()
+  posthog.capture({
+    distinctId: email.toLowerCase().trim(),
+    event: 'newsletter_subscription_created',
+  })
+  await posthog.flush()
 
   return NextResponse.json({ message: 'Subscribed successfully' }, { status: 201 })
 }

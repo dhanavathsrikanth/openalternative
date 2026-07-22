@@ -7,6 +7,7 @@ import { Users, Contributors } from '@/app/db/schema'
 import { log } from '@/app/log'
 import { eq } from 'drizzle-orm'
 import getEnv from '@/app/config'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -97,6 +98,20 @@ async function createUser(data: Record<string, unknown>) {
       email,
       displayName: 'Contributor',
     }).onConflictDoNothing({ target: Contributors.clerkUserId })
+
+    const posthog = getPostHogClient()
+    posthog.capture({
+      distinctId: data.id as string,
+      event: 'user_signed_up',
+    })
+    posthog.identify({
+      distinctId: data.id as string,
+      properties: {
+        name: [data.first_name, data.last_name].filter(Boolean).join(' ') || undefined,
+        email: email ?? undefined,
+      },
+    })
+    await posthog.flush()
 
     return NextResponse.json({
       message: 'user created'

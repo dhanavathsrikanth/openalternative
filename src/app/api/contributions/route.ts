@@ -3,6 +3,7 @@ import { db } from '@/app/db'
 import { Contributions, Contributors, Products } from '@/app/db/schema'
 import { eq, and, sql } from 'drizzle-orm'
 import { auth } from '@clerk/nextjs/server'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 const AUTO_APPROVE_THRESHOLD = parseInt(process.env.CONTRIBUTOR_AUTO_APPROVE_THRESHOLD ?? '50', 10)
 
@@ -95,6 +96,8 @@ export async function POST(req: NextRequest) {
     })
     .returning()
 
+  const posthog = getPostHogClient()
+
   // If auto-approved, apply changes immediately
   if (status === 'approved') {
     await applyChanges(productId, changes)
@@ -102,7 +105,27 @@ export async function POST(req: NextRequest) {
       .update(Contributors)
       .set({ reputationPoints: contributor.reputationPoints + 5 })
       .where(eq(Contributors.id, contributor.id))
+    posthog.capture({
+      distinctId: userId,
+      event: 'contribution_auto_approved',
+      properties: {
+        product_id: productId,
+        contribution_id: contribution.id,
+        fields_changed: (changes as { field: string; value: string }[]).map((c) => c.field),
+      },
+    })
+  } else {
+    posthog.capture({
+      distinctId: userId,
+      event: 'contribution_submitted',
+      properties: {
+        product_id: productId,
+        contribution_id: contribution.id,
+        fields_changed: (changes as { field: string; value: string }[]).map((c) => c.field),
+      },
+    })
   }
+  await posthog.flush()
 
   return NextResponse.json({
     message: status === 'approved' ? 'Changes applied automatically' : 'Submitted for review',

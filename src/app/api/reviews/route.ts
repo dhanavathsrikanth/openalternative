@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { db } from '@/app/db'
 import { Reviews, Contributors } from '@/app/db/schema'
 import { and, eq } from 'drizzle-orm'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -69,6 +70,17 @@ export async function POST(req: NextRequest) {
       body: reviewBody.trim(),
     })
     .returning()
+
+  const posthog = getPostHogClient()
+  posthog.capture({
+    distinctId: userId,
+    event: 'review_created',
+    properties: {
+      product_id: productId,
+      rating: Math.round(rating),
+    },
+  })
+  await posthog.flush()
 
   return NextResponse.json({ review }, { status: 201 })
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
+import posthog from 'posthog-js'
 
 interface Props {
   productId: number
@@ -47,6 +48,10 @@ export function ReviewForm({ productId }: Props) {
         throw new Error(data.error || 'Failed to submit review')
       }
 
+      posthog.capture('review_submitted', {
+        product_id: productId,
+        rating,
+      })
       setSuccess(true)
       setBody('')
       setRating(5)

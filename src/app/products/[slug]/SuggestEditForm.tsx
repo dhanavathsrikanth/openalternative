@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { Product } from '@/app/db/schema'
+import posthog from 'posthog-js'
 
 interface Props {
   product: Product
@@ -50,6 +51,11 @@ export function SuggestEditForm({ product }: Props) {
         throw new Error(data.error ?? 'Failed to submit')
       }
 
+      posthog.capture('product_edit_suggested', {
+        product_id: product.id,
+        product_slug: product.slug,
+        fields_changed: changes.filter((c) => c.value !== '').map((c) => c.field),
+      })
       setSubmitted(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')

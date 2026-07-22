@@ -1,5 +1,7 @@
 'use client'
 
+import posthog from 'posthog-js'
+
 export default function Error({
   error,
   reset,
@@ -7,6 +9,8 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  posthog.captureException(error)
+
   return (
     <main className="min-h-screen bg-[#1A1A1A] flex items-center justify-center">
       <div className="text-center">

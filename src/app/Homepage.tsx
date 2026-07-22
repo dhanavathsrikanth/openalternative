@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { ProductCard } from '@/components/ProductCard'
 import { CategoryCard } from '@/components/CategoryCard'
 import { EmptyState } from '@/components/EmptyState'
+import posthog from 'posthog-js'
 
 interface CategoryItem {
   id: number
@@ -29,6 +30,7 @@ export function Homepage({ trending, categories, recent }: Props) {
   function handleSearch(e: FormEvent) {
     e.preventDefault()
     if (query.trim()) {
+      posthog.capture('homepage_searched', { query: query.trim() })
       router.push(`/search?q=${encodeURIComponent(query.trim())}`)
     }
   }

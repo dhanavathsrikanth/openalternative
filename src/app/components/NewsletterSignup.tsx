@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import posthog from 'posthog-js'
 
 export function NewsletterSignup() {
   const [email, setEmail] = useState('')
@@ -25,6 +26,7 @@ export function NewsletterSignup() {
         throw new Error(data.error || 'Failed to subscribe')
       }
 
+      posthog.capture('newsletter_subscribed')
       setSuccess(true)
       setEmail('')
     } catch (err) {
