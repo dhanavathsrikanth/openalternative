@@ -6,7 +6,7 @@ Open-source software discovery platform built with Next.js, Neon Postgres, and C
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Framework** | Next.js 14 (App Router) | React SSR/SSG, API routes, file-based routing |
+| **Framework** | Next.js 16 (App Router) | React SSR/SSG, API routes, file-based routing |
 | **Language** | TypeScript | Type safety across the entire codebase |
 | **Styling** | Tailwind CSS + shadcn/ui | Utility-first CSS with pre-built components |
 | **Database** | Neon Postgres | Serverless Postgres with branching |
@@ -19,21 +19,19 @@ Open-source software discovery platform built with Next.js, Neon Postgres, and C
 
 Neon provides database branching that mirrors git workflows:
 
-- **`production`** (default) — Live production data
-- **`dev`** — Shared development branch
-- **`feature/*`** — Short-lived branches for each feature, deleted after merge
+- **`dev`** — Development and testing
+- **`production`** — Live production data
 
 ### Branch Workflow
 
 ```bash
-# Create a feature branch
-neon checkout feature/my-feature
-
-# Work on the feature (DATABASE_URL auto-updates)
-
-# Merge and cleanup
+# Work on dev
 neon checkout dev
-neon branch delete feature/my-feature
+drizzle-kit push:pg
+
+# Promote to production after testing
+neon checkout production
+drizzle-kit push:pg
 ```
 
 ## Folder Structure

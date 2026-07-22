@@ -3,10 +3,12 @@ import { NextResponse } from 'next/server'
 import { db } from '@/app/db'
 import { headers } from 'next/headers'
 import { Webhook } from 'svix'
-import { Users } from '@/app/db/schema'
+import { Users, Contributors } from '@/app/db/schema'
 import { log } from '@/app/log'
 import { eq } from 'drizzle-orm'
 import getEnv from '@/app/config'
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 async function validateRequest(request: Request, secret: string) {
   const payloadString = await request.text()
@@ -43,7 +45,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   log.trace(`clerk webhook payload: ${{ data, type }}`)
 
   if (type === 'user.created') {
-    return createUser(data.id, data.created_at)
+    return createUser(data as unknown as Record<string, unknown>)
   } else if (type === 'user.deleted') {
     return deleteUser(data.id)
   } else {
@@ -56,13 +58,45 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 }
 
-async function createUser(id: string, createdAt: number) {
+function extractEmail(data: Record<string, unknown>): string | null {
+  const emailAddresses = data.email_addresses as
+    | { id?: string; email_address?: string }[]
+    | undefined
+  if (!Array.isArray(emailAddresses) || emailAddresses.length === 0) {
+    return null
+  }
+
+  // Prefer the primary verified email; fall back to first available
+  const primary = emailAddresses.find(
+    (e) => e.id === data.primary_email_address_id,
+  )
+  const raw = primary?.email_address ?? emailAddresses[0]?.email_address
+  if (!raw || !EMAIL_REGEX.test(raw)) {
+    return null
+  }
+  return raw
+}
+
+async function createUser(data: Record<string, unknown>) {
   try {
     log.info('creating user due to clerk webhook')
+
     await db.insert(Users).values({
-      id,
-      clerkCreateTs: new Date(createdAt)
+      id: data.id as string,
+      clerkCreateTs: new Date(data.created_at as number),
     })
+
+    const email = extractEmail(data)
+    if (!email) {
+      log.warn(`user.created webhook for ${data.id}: no valid email found, skipping contributor creation`)
+      return NextResponse.json({ message: 'user created (no email, contributor skipped)' }, { status: 200 })
+    }
+
+    await db.insert(Contributors).values({
+      clerkUserId: data.id as string,
+      email,
+      displayName: 'Contributor',
+    }).onConflictDoNothing({ target: Contributors.clerkUserId })
 
     return NextResponse.json({
       message: 'user created'

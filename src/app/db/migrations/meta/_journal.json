@@ -36,6 +36,34 @@
       "when": 1710883427375,
       "tag": "0004_square_falcon",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1784652998990,
+      "tag": "0005_strange_zeigeist",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1784655747058,
+      "tag": "0006_real_beyonder",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1784660581278,
+      "tag": "0007_productive_sunset_bain",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1784662122016,
+      "tag": "0008_tiresome_mojo",
+      "breakpoints": true
     }
   ]
 }

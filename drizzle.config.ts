@@ -1,7 +1,7 @@
 import type { Config } from 'drizzle-kit';
 import * as dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ path: '.env.local' });
 
 if (!('DATABASE_URL' in process.env)) throw new Error('DATABASE_URL not found in environment');
 

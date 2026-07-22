@@ -1,48 +1,58 @@
-import { db } from "./db";
-import { ElementVotes, Elements } from "./db/schema";
-import { eq, sql } from 'drizzle-orm'
-import { ElementComponent } from "./components/element";
+import { db } from '@/app/db'
+import { Products, Categories, ProductCategories } from '@/app/db/schema'
+import { eq, sql, desc } from 'drizzle-orm'
+import { Homepage } from './Homepage'
 
-export const dynamic = 'force-dynamic';
-
-const getData = async () => {
-  const elements = await db.
-    select({
-      votes: sql<number>`COALESCE(COUNT(DISTINCT ${ElementVotes.userId}), 0)`,
-      name: Elements.name,
-      atomicNumber: Elements.atomicNumber,
-      symbol: Elements.symbol
-    })
-    .from(Elements)
-    .leftJoin(ElementVotes, eq(Elements.atomicNumber, ElementVotes.elementId))
-    .groupBy(sql`${Elements.name},${Elements.atomicNumber}`)
-    .orderBy(sql`COALESCE(COUNT(DISTINCT ${ElementVotes.userId}), 0) DESC`)
-
-  return elements;
-};
+export const revalidate = 86400 // 24h ISR
 
 export default async function Home() {
-  const elements = await getData();
+  // Trending: top 6 by confidence score (highest first)
+  const trending = await db
+    .select({
+      id: Products.id,
+      name: Products.name,
+      slug: Products.slug,
+      description: Products.description,
+      license: Products.license,
+      primaryLanguage: Products.primaryLanguage,
+      confidenceScore: Products.confidenceScore,
+    })
+    .from(Products)
+    .where(eq(Products.status, 'published'))
+    .orderBy(desc(sql`COALESCE(${Products.confidenceScore}::numeric, 0)`))
+    .limit(6)
 
-  return (
-    <main className="min-h-screen bg-[#1A1A1A]">
-      <div className="py-8">
-        <h1 className="text-3xl font-bold text-center text-white">Forklane</h1>
-        <p className="text-lg text-center text-gray-400 mt-2">Discover open-source software</p>
-      </div>
-      <div className="flex items-center justify-center px-4">
-        <ul className="grid grid-cols-2 md:grid-cols-5 gap-5">
-          {
-            elements.map(el => {
-              return (
-                <ElementComponent key={el.atomicNumber} atomicNumber={el.atomicNumber} symbol={el.symbol} name={el.name}>
-                  <small className="pt-4 text-xs text-gray-800">Votes: {el.votes}</small>
-                </ElementComponent>
-              )
-            })
-          }
-        </ul>
-      </div>
-    </main>
-  );
+  // Popular categories: top 6 with product count
+  const categories = await db
+    .select({
+      id: Categories.id,
+      name: Categories.name,
+      slug: Categories.slug,
+      description: Categories.description,
+      productCount: sql<number>`count(${ProductCategories.productId})::int`,
+    })
+    .from(Categories)
+    .leftJoin(ProductCategories, eq(Categories.id, ProductCategories.categoryId))
+    .groupBy(Categories.id)
+    .orderBy(desc(sql`count(${ProductCategories.productId})`))
+    .limit(6)
+
+  // Recently updated: last 6 by updatedAt
+  const recent = await db
+    .select({
+      id: Products.id,
+      name: Products.name,
+      slug: Products.slug,
+      description: Products.description,
+      license: Products.license,
+      primaryLanguage: Products.primaryLanguage,
+      confidenceScore: Products.confidenceScore,
+      updatedAt: Products.updatedAt,
+    })
+    .from(Products)
+    .where(eq(Products.status, 'published'))
+    .orderBy(desc(Products.updatedAt))
+    .limit(6)
+
+  return <Homepage trending={trending} categories={categories} recent={recent} />
 }
