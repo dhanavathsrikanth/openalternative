@@ -1,5 +1,5 @@
 import { db } from '@/app/db'
-import { Products, Categories, Comparisons } from '@/app/db/schema'
+import { Products, Categories, Comparisons, Guides } from '@/app/db/schema'
 import { eq } from 'drizzle-orm'
 import type { MetadataRoute } from 'next'
 
@@ -30,6 +30,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${BASE_URL}/compare`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+    {
+      url: `${BASE_URL}/guides`,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.7,
@@ -101,5 +107,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     })
 
-  return [...staticPages, ...productPages, ...categoryPages, ...comparisonPages]
+  // Guide pages
+  const guides = await db
+    .select({
+      slug: Guides.slug,
+      updatedAt: Guides.updatedAt,
+    })
+    .from(Guides)
+    .where(eq(Guides.status, 'published'))
+
+  const guidePages: MetadataRoute.Sitemap = guides.map((g) => ({
+    url: `${BASE_URL}/guides/${g.slug}`,
+    lastModified: g.updatedAt,
+    changeFrequency: 'monthly' as const,
+    priority: 0.6,
+  }))
+
+  return [...staticPages, ...productPages, ...categoryPages, ...comparisonPages, ...guidePages]
 }

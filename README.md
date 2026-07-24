@@ -27,11 +27,11 @@ Requires Node.js 18.x.
     * `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - With the value from the **API Keys** section in the Clerk dashboard.
     * `CLERK_SECRET_KEY` - With the value from the **API Keys** section in the Clerk dashboard.
     * `CLERK_WEBHOOK_SECRET` - This will be obtained later.
-1. Generate and push the database schemas, and insert seed data:
+1. Generate and push the database schemas, and insert dev seed data:
     ```bash
     npm run drizzle:generate -- dotenv_config_path=.env.local
     npm run drizzle:push -- dotenv_config_path=.env.local
-    npm run seed -- dotenv_config_path=.env.local
+    npm run seed:dev
     ```
 
 > [!TIP]

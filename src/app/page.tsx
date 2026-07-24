@@ -1,11 +1,21 @@
 import { db } from '@/app/db'
-import { Products, Categories, ProductCategories } from '@/app/db/schema'
-import { eq, sql, desc } from 'drizzle-orm'
+import { Products, Categories, ProductCategories, ProductTags, Tags } from '@/app/db/schema'
+import { eq, sql, desc, inArray } from 'drizzle-orm'
 import { Homepage } from './Homepage'
+import { FaqJsonLd } from './FaqJsonLd'
 
 export const revalidate = 86400 // 24h ISR
 
 export default async function Home() {
+  // Live stats for hero badge
+  const [stats] = await db
+    .select({
+      productCount: sql<number>`count(*)::int`.as('product_count'),
+      latestVerifiedAt: sql<Date | null>`max(${Products.lastVerifiedAt})`.as('latest_verified_at'),
+    })
+    .from(Products)
+    .where(eq(Products.status, 'published'))
+
   // Trending: top 6 by confidence score (highest first)
   const trending = await db
     .select({
@@ -13,9 +23,12 @@ export default async function Home() {
       name: Products.name,
       slug: Products.slug,
       description: Products.description,
+      tagline: Products.tagline,
       license: Products.license,
       primaryLanguage: Products.primaryLanguage,
       confidenceScore: Products.confidenceScore,
+      stars: Products.stars,
+      forks: Products.forks,
     })
     .from(Products)
     .where(eq(Products.status, 'published'))
@@ -44,9 +57,12 @@ export default async function Home() {
       name: Products.name,
       slug: Products.slug,
       description: Products.description,
+      tagline: Products.tagline,
       license: Products.license,
       primaryLanguage: Products.primaryLanguage,
       confidenceScore: Products.confidenceScore,
+      stars: Products.stars,
+      forks: Products.forks,
       updatedAt: Products.updatedAt,
     })
     .from(Products)
@@ -54,5 +70,43 @@ export default async function Home() {
     .orderBy(desc(Products.updatedAt))
     .limit(6)
 
-  return <Homepage trending={trending} categories={categories} recent={recent} />
+  // Fetch tags for all displayed products in one query
+  const allProductIds = [
+    ...trending.map((p) => p.id),
+    ...recent.map((p) => p.id),
+  ]
+
+  const tagRows = allProductIds.length > 0
+    ? await db
+        .select({
+          productId: ProductTags.productId,
+          tagName: Tags.name,
+        })
+        .from(ProductTags)
+        .innerJoin(Tags, eq(ProductTags.tagId, Tags.id))
+        .where(inArray(ProductTags.productId, allProductIds))
+    : []
+
+  const tagsByProduct = new Map<number, string[]>()
+  for (const row of tagRows) {
+    const existing = tagsByProduct.get(row.productId) ?? []
+    existing.push(row.tagName)
+    tagsByProduct.set(row.productId, existing)
+  }
+
+  const trendingWithTags = trending.map((p) => ({ ...p, tags: tagsByProduct.get(p.id) ?? [] }))
+  const recentWithTags = recent.map((p) => ({ ...p, tags: tagsByProduct.get(p.id) ?? [] }))
+
+  return (
+    <>
+      <FaqJsonLd />
+      <Homepage
+        trending={trendingWithTags}
+        categories={categories}
+        recent={recentWithTags}
+        productCount={stats?.productCount ?? 0}
+        latestVerifiedAt={stats?.latestVerifiedAt ?? null}
+      />
+    </>
+  )
 }

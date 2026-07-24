@@ -8,10 +8,11 @@
  */
 
 import { db } from '../src/app/db'
-import { RawSignals, Products, Categories, ProductCategories } from '../src/app/db/schema'
+import { RawSignals, Products, Categories, ProductCategories, ProductTags, ProductAssets } from '../src/app/db/schema'
 import { eq, sql } from 'drizzle-orm'
 import { resolveCanonical } from '../src/lib/normalize/canonicalResolver'
 import { computeConfidenceScore } from '../src/lib/scoring/confidenceScore'
+import { validatePublishable } from '../src/lib/validation/product'
 import * as dotenv from 'dotenv'
 
 dotenv.config({ path: '.env.local' })
@@ -99,10 +100,19 @@ async function main() {
   const signalIdsToMark: number[] = []
 
   for (const [slug, { canonical, score, breakdown, signalId }] of bySlug) {
-    const hasDescription = canonical.description.length > 0
-    const hasUrl = !!(canonical.githubUrl || canonical.homepageUrl)
-    const publishable = hasDescription && hasUrl
     const existing = existingMap.get(slug)
+
+    // Use shared validation — products need categories/tags before publishing.
+    // During seeding these are assigned later, so products start as drafts.
+    const publishable = validatePublishable({
+      name: canonical.name,
+      slug,
+      tagline: null,
+      description: canonical.description,
+      logoUrl: null,
+      categoryCount: 0,
+      tagCount: 0,
+    }) === true
 
     if (!existing) {
       toInsert.push({

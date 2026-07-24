@@ -1,62 +1,168 @@
 const GITHUB_API = 'https://api.github.com'
 
 function headers(): HeadersInit {
-  const h: HeadersInit = { Accept: 'application/vnd.github+json' }
+  const h: HeadersInit = {
+    Accept: 'application/vnd.github+json',
+    'Content-Type': 'application/json',
+  }
   if (process.env.GITHUB_TOKEN) {
     h.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`
   }
   return h
 }
 
+// ── GraphQL query — fetches everything in a single call ─────────────────────
+
+const REPO_QUERY = `
+query($owner: String!, $repo: String!) {
+  repository(owner: $owner, name: $repo) {
+    name
+    nameWithOwner
+    description
+    homepageUrl
+    url
+    isArchived
+    isFork
+    defaultBranchRef { name }
+    createdAt
+    pushedAt
+    updatedAt
+    forkCount
+    stargazerCount
+    watcherCount
+    issues(states: OPEN) { totalCount }
+    licenseInfo { spdxId }
+    primaryLanguage { name }
+    repositoryTopics(first: 20) {
+      nodes { topic { name } }
+    }
+    latestRelease {
+      tagName
+      publishedAt
+    }
+    diskUsage
+  }
+}
+`
+
+interface GraphQLRepoResponse {
+  data: {
+    repository: {
+      name: string
+      nameWithOwner: string
+      description: string | null
+      homepageUrl: string | null
+      url: string
+      isArchived: boolean
+      isFork: boolean
+      defaultBranchRef: { name: string } | null
+      createdAt: string
+      pushedAt: string
+      updatedAt: string
+      forkCount: number
+      stargazerCount: number
+      watcherCount: number
+      issues: { totalCount: number }
+      licenseInfo: { spdxId: string } | null
+      primaryLanguage: { name: string } | null
+      repositoryTopics: {
+        nodes: { topic: { name: string } }[]
+      }
+      latestRelease: {
+        tagName: string
+        publishedAt: string
+      } | null
+      diskUsage: number
+    } | null
+  }
+  errors?: { message: string }[]
+}
+
+export interface GitHubRepoPayload {
+  source: 'github'
+  fullName: string
+  stars: number
+  forks: number
+  openIssues: number
+  watchers: number
+  language: string | null
+  license: string | null
+  description: string | null
+  homepage: string | null
+  defaultBranch: string
+  createdAt: string
+  pushedAt: string
+  updatedAt: string
+  archived: boolean
+  fork: boolean
+  topics: string[]
+  size: number
+  latestRelease: { tag: string; publishedAt: string } | null
+  fetchedAt: string
+}
+
 export async function fetchGitHubRepo(
   owner: string,
   repo: string,
   signal?: AbortSignal,
-) {
-  const [repoRes, releaseRes] = await Promise.all([
-    fetch(`${GITHUB_API}/repos/${owner}/${repo}`, {
-      headers: headers(),
-      signal,
+): Promise<{ identifier: string; payload: GitHubRepoPayload }> {
+  const res = await fetch(GITHUB_API, {
+    method: 'POST',
+    headers: headers(),
+    signal,
+    body: JSON.stringify({
+      query: REPO_QUERY,
+      variables: { owner, repo },
     }),
-    fetch(`${GITHUB_API}/repos/${owner}/${repo}/releases/latest`, {
-      headers: headers(),
-      signal,
-    }).catch(() => null),
-  ])
+  })
 
-  if (!repoRes.ok) {
-    if (repoRes.status === 403 || repoRes.status === 429) {
-      const reset = repoRes.headers.get('x-ratelimit-reset')
+  if (!res.ok) {
+    if (res.status === 403 || res.status === 429) {
+      const reset = res.headers.get('x-ratelimit-reset')
       const waitMs = reset
         ? Math.max(0, Number(reset) * 1000 - Date.now()) + 1000
         : 60_000
       throw new Error(`GitHub rate limited, retry after ${waitMs}ms`)
     }
-    throw new Error(`GitHub API ${repoRes.status}: ${owner}/${repo}`)
+    throw new Error(`GitHub API ${res.status}: ${owner}/${repo}`)
   }
 
-  const repoData = await repoRes.json()
-  const releaseData = releaseRes?.ok ? await releaseRes.json() : null
+  const json = (await res.json()) as GraphQLRepoResponse
+
+  if (json.errors?.length) {
+    throw new Error(`GitHub GraphQL: ${json.errors[0].message} (${owner}/${repo})`)
+  }
+
+  const r = json.data.repository
+  if (!r) {
+    throw new Error(`GitHub repo not found: ${owner}/${repo}`)
+  }
 
   return {
     identifier: `${owner}/${repo}`,
     payload: {
       source: 'github',
-      fullName: `${owner}/${repo}`,
-      stars: repoData.stargazers_count,
-      forks: repoData.forks_count,
-      openIssues: repoData.open_issues_count,
-      language: repoData.language,
-      license: repoData.license?.spdx_id ?? null,
-      description: repoData.description,
-      homepage: repoData.homepage,
-      defaultBranch: repoData.default_branch,
-      createdAt: repoData.created_at,
-      pushedAt: repoData.pushed_at,
-      latestRelease: releaseData
+      fullName: r.nameWithOwner,
+      stars: r.stargazerCount,
+      forks: r.forkCount,
+      openIssues: r.issues.totalCount,
+      watchers: r.watcherCount,
+      language: r.primaryLanguage?.name ?? null,
+      license: r.licenseInfo?.spdxId ?? null,
+      description: r.description,
+      homepage: r.homepageUrl,
+      defaultBranch: r.defaultBranchRef?.name ?? 'main',
+      createdAt: r.createdAt,
+      pushedAt: r.pushedAt,
+      updatedAt: r.updatedAt,
+      archived: r.isArchived,
+      fork: r.isFork,
+      topics: r.repositoryTopics.nodes.map((n) => n.topic.name),
+      size: r.diskUsage,
+      latestRelease: r.latestRelease
         ? {
-            tag: releaseData.tag_name,
-            publishedAt: releaseData.published_at,
+            tag: r.latestRelease.tagName,
+            publishedAt: r.latestRelease.publishedAt,
           }
         : null,
       fetchedAt: new Date().toISOString(),

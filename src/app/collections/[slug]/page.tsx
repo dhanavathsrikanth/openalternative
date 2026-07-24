@@ -53,7 +53,8 @@ export default async function CollectionSlugPage({ params }: PageProps) {
       license: Products.license,
       primaryLanguage: Products.primaryLanguage,
       deploymentMethods: Products.deploymentMethods,
-      confidenceScore: Products.confidenceScore,
+      stars: Products.stars,
+      forks: Products.forks,
       githubUrl: Products.githubUrl,
     })
     .from(CollectionProducts)

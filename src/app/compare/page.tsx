@@ -28,7 +28,7 @@ export default async function CompareIndexPage() {
   )
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12">
+    <main className="mx-auto max-w-[68rem] px-6 lg:px-8 py-12">
       <h1 className="mb-8 text-3xl font-bold tracking-tight">Comparisons</h1>
 
       {comparisons.length === 0 ? (
@@ -45,7 +45,7 @@ export default async function CompareIndexPage() {
               <li key={c.id}>
                 <Link
                   href={`/compare/${canonical}`}
-                  className="block rounded-xl border bg-card p-6 shadow-sm transition-colors hover:bg-accent"
+                  className="block rounded-xl border bg-card p-6 shadow-sm transition-colors duration-fast ease-out hover:bg-accent card-lift"
                 >
                   <h2 className="text-lg font-semibold">
                     {c.nameA} vs {c.nameB}

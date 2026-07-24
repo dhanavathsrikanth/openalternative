@@ -68,7 +68,8 @@ export async function GET(req: NextRequest) {
       license: Products.license,
       primaryLanguage: Products.primaryLanguage,
       deploymentMethods: Products.deploymentMethods,
-      confidenceScore: Products.confidenceScore,
+      stars: Products.stars,
+      forks: Products.forks,
       githubUrl: Products.githubUrl,
       homepageUrl: Products.homepageUrl,
       rank: params.q.trim()

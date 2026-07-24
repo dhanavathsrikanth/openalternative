@@ -20,6 +20,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: '**.githubusercontent.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'imagedelivery.net',
+      },
     ],
   },
   async rewrites() {
@@ -57,6 +61,12 @@ const nextConfig = {
         { key: 'Cache-Control', value: 'public, s-maxage=86400, stale-while-revalidate=604800' },
       ],
     },
+    {
+      source: '/guides/:path*',
+      headers: [
+        { key: 'Cache-Control', value: 'public, s-maxage=86400, stale-while-revalidate=604800' },
+      ],
+    },
   ],
 };
 
@@ -67,6 +77,10 @@ export default withSentryConfig(nextConfig, {
   org: "pivoturl",
 
   project: "openalternative",
+
+  // Environment for source-map uploads — must match a Sentry environment
+  // On Vercel this resolves to "production" / "preview" automatically.
+  environment: process.env.SENTRY_ENVIRONMENT || process.env.VERCEL_ENV || "development",
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,

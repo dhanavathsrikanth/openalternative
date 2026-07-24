@@ -25,9 +25,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (rows.length === 0) return { title: 'Not Found — Forklane' }
 
   const cat = rows[0]
+  const title = cat.seoTitle || `${cat.name} — Forklane`
+  const description = cat.seoDescription || cat.description || `Browse open-source ${cat.name} alternatives on Forklane`
+
   return {
-    title: `${cat.name} — Forklane`,
-    description: cat.description ?? `Browse open-source ${cat.name} alternatives on Forklane`,
+    title,
+    description,
+    ...(cat.seoCanonicalUrl && { alternates: { canonical: cat.seoCanonicalUrl } }),
   }
 }
 
@@ -54,7 +58,8 @@ export default async function CategorySlugPage({ params }: PageProps) {
       license: Products.license,
       primaryLanguage: Products.primaryLanguage,
       deploymentMethods: Products.deploymentMethods,
-      confidenceScore: Products.confidenceScore,
+      stars: Products.stars,
+      forks: Products.forks,
       githubUrl: Products.githubUrl,
     })
     .from(Products)

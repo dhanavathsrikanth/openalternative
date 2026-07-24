@@ -1,17 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import type { Product } from '@/app/db/schema'
 
 interface Props {
-  url: string
-}
-
-interface GitHubData {
-  stars: number
-  forks: number
-  openIssues: number
-  language: string | null
-  pushedAt: string | null
+  product: Product
 }
 
 function formatNumber(n: number): string {
@@ -19,8 +11,8 @@ function formatNumber(n: number): string {
   return n.toLocaleString()
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
+function timeAgo(date: Date): string {
+  const diff = Date.now() - date.getTime()
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
   if (days === 0) return 'today'
   if (days === 1) return 'yesterday'
@@ -29,54 +21,12 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 365)}y ago`
 }
 
-export function GithubStats({ url }: Props) {
-  const [data, setData] = useState<GitHubData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
-
-  useEffect(() => {
-    const owner = url.split('github.com/')[1]?.split('/')[0]
-    const repo = url.split('github.com/')[1]?.split('/')[1]?.replace(/\.git$/, '')
-    if (!owner || !repo) {
-      setError(true)
-      setLoading(false)
-      return
-    }
-
-    fetch(`https://api.github.com/repos/${owner}/${repo}`)
-      .then((r) => {
-        if (!r.ok) throw new Error()
-        return r.json()
-      })
-      .then((d) => {
-        setData({
-          stars: d.stargazers_count ?? 0,
-          forks: d.forks_count ?? 0,
-          openIssues: d.open_issues_count ?? 0,
-          language: d.language ?? null,
-          pushedAt: d.pushed_at ?? null,
-        })
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false))
-  }, [url])
-
-  if (loading) {
-    return (
-      <div className="animate-pulse rounded-xl border bg-card p-6 shadow-sm">
-        <div className="mb-3 h-4 w-32 rounded bg-muted" />
-        <div className="flex gap-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-8 w-16 rounded bg-muted" />
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !data) {
-    return null
-  }
+export function GithubStats({ product }: Props) {
+  const stars = product.stars ?? 0
+  const forks = product.forks ?? 0
+  const openIssues = product.openIssues ?? 0
+  const language = product.primaryLanguage
+  const lastPushedAt = product.lastPushedAt
 
   return (
     <div className="rounded-xl border bg-card p-6 shadow-sm">
@@ -86,33 +36,50 @@ export function GithubStats({ url }: Props) {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div>
           <span className="block text-2xl font-bold tabular-nums">
-            {formatNumber(data.stars)}
+            {formatNumber(stars)}
           </span>
           <span className="text-xs text-muted-foreground">Stars</span>
         </div>
         <div>
           <span className="block text-2xl font-bold tabular-nums">
-            {formatNumber(data.forks)}
+            {formatNumber(forks)}
           </span>
           <span className="text-xs text-muted-foreground">Forks</span>
         </div>
         <div>
           <span className="block text-2xl font-bold tabular-nums">
-            {formatNumber(data.openIssues)}
+            {formatNumber(openIssues)}
           </span>
           <span className="text-xs text-muted-foreground">Issues</span>
         </div>
         <div>
           <span className="block text-2xl font-bold">
-            {data.language ?? '—'}
+            {language ?? '—'}
           </span>
           <span className="text-xs text-muted-foreground">Language</span>
         </div>
       </div>
-      {data.pushedAt && (
+      {lastPushedAt && (
         <p className="mt-4 text-xs text-muted-foreground">
-          Last push: {timeAgo(data.pushedAt)}
+          Last push: {timeAgo(lastPushedAt)}
         </p>
+      )}
+      {product.topics && product.topics.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {product.topics.slice(0, 5).map((topic) => (
+            <span
+              key={topic}
+              className="inline-block rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground"
+            >
+              {topic}
+            </span>
+          ))}
+          {product.topics.length > 5 && (
+            <span className="text-[10px] text-muted-foreground">
+              +{product.topics.length - 5} more
+            </span>
+          )}
+        </div>
       )}
     </div>
   )

@@ -21,7 +21,7 @@ export default async function CollectionsIndexPage() {
     .orderBy(sql`count(${CollectionProducts.productId}) DESC`)
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12">
+    <main className="mx-auto max-w-[68rem] px-6 lg:px-8 py-12">
       <nav className="mb-8 text-sm text-muted-foreground">
         <Link href="/" className="hover:text-foreground">Forklane</Link>
         <span className="mx-2">/</span>
@@ -38,7 +38,7 @@ export default async function CollectionsIndexPage() {
             <li key={c.id}>
               <Link
                 href={`/collections/${c.slug}`}
-                className="block rounded-xl border bg-card p-6 shadow-sm transition-colors hover:bg-accent"
+                className="block rounded-xl border bg-card p-6 shadow-sm transition-colors duration-fast ease-out hover:bg-accent card-lift"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">

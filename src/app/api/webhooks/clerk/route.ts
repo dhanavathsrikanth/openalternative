@@ -3,11 +3,13 @@ import { NextResponse } from 'next/server'
 import { db } from '@/app/db'
 import { headers } from 'next/headers'
 import { Webhook } from 'svix'
-import { Users, Contributors } from '@/app/db/schema'
+import { Users, Contributors, Organizations } from '@/app/db/schema'
 import { log } from '@/app/log'
 import { eq } from 'drizzle-orm'
 import getEnv from '@/app/config'
 import { getPostHogClient } from '@/lib/posthog-server'
+import { createNotification } from '@/lib/notifications'
+import { getClerkClient } from '@/lib/clerk-client'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -49,6 +51,14 @@ export async function POST(req: Request): Promise<NextResponse> {
     return createUser(data as unknown as Record<string, unknown>)
   } else if (type === 'user.deleted') {
     return deleteUser(data.id)
+  } else if (type === 'organization.created') {
+    return createOrganization(data as unknown as Record<string, unknown>)
+  } else if (type === 'organization.updated') {
+    return updateOrganization(data as unknown as Record<string, unknown>)
+  } else if (type === 'organization.deleted') {
+    return deleteOrganization(data.id as string)
+  } else if (type === 'organizationMembership.created') {
+    return createOrganizationMembership(data as unknown as Record<string, unknown>)
   } else {
     log.warn(`${req.url} received event type "${type}", but no handler is defined for this type`)
     return NextResponse.json({
@@ -146,6 +156,147 @@ async function deleteUser(id?: string) {
     log.error('failed to delete user', error)
     return NextResponse.json(
       { error: 'failed to delete user' },
+      { status: 500 }
+    )
+  }
+}
+
+async function createOrganization(data: Record<string, unknown>) {
+  try {
+    log.info('creating organization due to clerk webhook')
+
+    await db.insert(Organizations).values({
+      clerkOrgId: data.id as string,
+      slug: (data.slug as string) || (data.id as string),
+      name: data.name as string,
+    })
+
+    return NextResponse.json({
+      message: 'organization created'
+    }, { status: 200 })
+  } catch (error) {
+    log.error('failed to create organization', error)
+    return NextResponse.json(
+      { error: 'failed to create organization' },
+      { status: 500 }
+    )
+  }
+}
+
+async function updateOrganization(data: Record<string, unknown>) {
+  try {
+    log.info('updating organization due to clerk webhook')
+
+    await db.update(Organizations)
+      .set({ name: data.name as string, slug: (data.slug as string) || (data.name as string).toLowerCase().replace(/\s+/g, '-') })
+      .where(eq(Organizations.clerkOrgId, data.id as string))
+
+    return NextResponse.json({
+      message: 'organization updated'
+    }, { status: 200 })
+  } catch (error) {
+    log.error('failed to update organization', error)
+    return NextResponse.json(
+      { error: 'failed to update organization' },
+      { status: 500 }
+    )
+  }
+}
+
+async function deleteOrganization(id: string) {
+  if (!id) {
+    log.warn('clerk sent a delete organization request, but no org ID was included in the payload')
+    return NextResponse.json({
+      message: 'ok'
+    }, { status: 200 })
+  }
+
+  try {
+    log.info('delete organization due to clerk webhook')
+    await db.delete(Organizations).where(
+      eq(Organizations.clerkOrgId, id)
+    )
+
+    return NextResponse.json({
+      message: 'organization deleted'
+    }, { status: 200 })
+  } catch (error) {
+    log.error('failed to delete organization', error)
+    return NextResponse.json(
+      { error: 'failed to delete organization' },
+      { status: 500 }
+    )
+  }
+}
+
+async function createOrganizationMembership(data: Record<string, unknown>) {
+  try {
+    log.info('processing organizationMembership.created webhook')
+
+    const orgId = (data.organization as Record<string, unknown>)?.id as string | undefined
+    const userId = (data.public_user_data as Record<string, unknown>)?.user_id as string | undefined
+    const invitedUserEmail = (data.public_user_data as Record<string, unknown>)?.email_address as string | undefined
+    const inviterName = (data.inviter as Record<string, unknown>)?.email_address as string | undefined
+
+    if (!orgId || !userId) {
+      log.warn('orgMembership.created missing orgId or userId, skipping notification')
+      return NextResponse.json({ message: 'skipped — missing data' }, { status: 200 })
+    }
+
+    // Look up the org row to get organizationId for notifications
+    const orgRows = await db
+      .select({ id: Organizations.id })
+      .from(Organizations)
+      .where(eq(Organizations.clerkOrgId, orgId))
+      .limit(1)
+
+    if (orgRows.length === 0) {
+      log.warn(`orgMembership.created: org ${orgId} not found in DB, skipping`)
+      return NextResponse.json({ message: 'skipped — org not in DB' }, { status: 200 })
+    }
+
+    const organizationId = orgRows[0].id
+
+    // Notify org owners and admins about the new member
+    try {
+      const client = await getClerkClient()
+      const members = await client.organizations.getOrganizationMembershipList({
+        organizationId: orgId,
+        pageSize: 100,
+      })
+
+      for (const m of members.data) {
+        if (m.role === 'org:owner' || m.role === 'org:admin') {
+          const recipientUserId = m.publicUserData?.userId
+          if (!recipientUserId) continue
+
+          await createNotification({
+            organizationId,
+            recipientId: recipientUserId,
+            eventType: 'team_invite',
+            title: 'New team member',
+            body: inviterName
+              ? `${inviterName} invited ${invitedUserEmail ?? 'a user'} to the team`
+              : `${invitedUserEmail ?? 'A user'} joined the team`,
+            metadata: {
+              invitedUserId: userId,
+              invitedUserEmail,
+              role: data.role,
+            },
+          })
+        }
+      }
+    } catch {
+      // Best-effort — don't fail the webhook
+    }
+
+    return NextResponse.json({
+      message: 'orgMembership.created processed'
+    }, { status: 200 })
+  } catch (error) {
+    log.error('failed to process orgMembership.created', error)
+    return NextResponse.json(
+      { error: 'failed to process orgMembership.created' },
       { status: 500 }
     )
   }

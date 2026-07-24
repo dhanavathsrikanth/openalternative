@@ -16,7 +16,7 @@ interface Props {
 export function CategoryCard({ category }: Props) {
   return (
     <Link href={`/categories/${category.slug}`} className="group block">
-      <Card className="h-full transition-colors group-hover:bg-accent/50">
+      <Card className="h-full transition-colors duration-fast ease-out group-hover:bg-accent/50 card-lift">
         <CardContent className="p-5">
           <div className="mb-3 flex items-start justify-between gap-3">
             <CategoryIcon categorySlug={category.slug} />

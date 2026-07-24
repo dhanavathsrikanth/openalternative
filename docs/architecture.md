@@ -34,6 +34,29 @@ neon checkout production
 drizzle-kit push:pg
 ```
 
+## Database Connection Policy
+
+Neon exposes two connection endpoints. The app uses both, separated by purpose:
+
+| Endpoint | Env var | Purpose |
+|----------|---------|---------|
+| **Pooled** (`-pooler` host) | `DATABASE_URL` | All runtime queries — server components, API routes, cron jobs |
+| **Direct** (non-pooled) | `DATABASE_URL_UNPOOLED` | `drizzle-kit` migrations, one-off `scripts/*.ts` |
+
+### Why two endpoints?
+
+The **pooled** endpoint uses Neon's transaction-mode connection pooler. Under concurrent serverless load (many Vercel functions, parallel cron jobs), each request borrows a connection from the pool and releases it immediately after the query. This prevents the compute instance from running out of connections.
+
+The **direct** endpoint connects straight to the compute. It is appropriate for **long-running, single-client operations** — schema migrations, backfills, diagnostics — where holding a connection for the duration is expected and no other client needs it.
+
+### Rules
+
+1. Production runtime code (`src/`) **must** use `DATABASE_URL` (pooled).
+2. Migration scripts and one-off `scripts/` **must** use `DATABASE_URL_UNPOOLED` (direct).
+3. Never import `db` from `@/app/db` in a script that needs the direct endpoint — create your own `neon(DATABASE_URL_UNPOOLED)` connection instead.
+
+See `src/app/db/README.md` for the full connection policy and migration workflow.
+
 ## Folder Structure
 
 ```
@@ -49,7 +72,6 @@ openalternative/
 │   │   │   └── utils.ts       # cn() and other utilities
 │   │   ├── sign-in/           # Clerk sign-in page
 │   │   ├── sign-up/           # Clerk sign-up page
-│   │   ├── voted/             # Voting page
 │   │   ├── error.tsx          # Error boundary
 │   │   ├── globals.css        # Global styles with shadcn variables
 │   │   ├── layout.tsx         # Root layout
@@ -72,14 +94,13 @@ Clerk is included in the starter template and remains wired up but **unused** fo
 ### Database Schema
 
 - **users** — Synced from Clerk webhooks (unused until V3)
-- **elements** — Periodic table data (seed data)
-- **element_votes** — User votes on elements
 
 ### Environment Variables
 
 Required environment variables (see `.env.example`):
 
-- `DATABASE_URL` — Neon Postgres connection string
+- `DATABASE_URL` — Neon Postgres **pooled** connection string (`-pooler` host)
+- `DATABASE_URL_UNPOOLED` — Neon Postgres **direct** connection string (for migrations/scripts)
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` — Clerk publishable key
 - `CLERK_SECRET_KEY` — Clerk secret key
 - `CLERK_WEBHOOK_SECRET` — Clerk webhook verification secret
@@ -93,7 +114,7 @@ npm install
 # Set up database
 npm run drizzle:generate
 npm run drizzle:push
-npm run seed
+npm run seed:dev
 
 # Start dev server
 npm run dev

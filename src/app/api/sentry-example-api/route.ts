@@ -10,8 +10,9 @@ class SentryExampleAPIError extends Error {
 
 // A faulty API route to test Sentry's error monitoring
 export function GET() {
-  Sentry.logger.info("Sentry example API called");
+  const environment = process.env.SENTRY_ENVIRONMENT || process.env.VERCEL_ENV || "development";
+  Sentry.logger.info(`Sentry example API called [environment=${environment}]`);
   throw new SentryExampleAPIError(
-    "This error is raised on the backend called by the example page.",
+    `[${environment}] This error is raised on the backend called by the example page.`,
   );
 }

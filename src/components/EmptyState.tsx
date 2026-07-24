@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { buttonVariants } from '@/components/ui/button'
 
 interface Props {
   icon?: React.ReactNode
@@ -30,7 +31,7 @@ export function EmptyState({ icon, title, description, action, className }: Prop
       {action && (
         <Link
           href={action.href}
-          className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+          className={cn(buttonVariants({ variant: 'default' }), 'mt-5')}
         >
           {action.label}
         </Link>

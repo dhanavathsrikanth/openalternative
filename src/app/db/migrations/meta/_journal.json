@@ -64,6 +64,76 @@
       "when": 1784662122016,
       "tag": "0008_tiresome_mojo",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1784701860443,
+      "tag": "0009_colossal_manta",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1784710000000,
+      "tag": "0010_analytics_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1784720000000,
+      "tag": "0011_announcements_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1784730000000,
+      "tag": "0012_product_assets",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1784740000000,
+      "tag": "0013_add_legacy_image_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "5",
+      "when": 1784750000000,
+      "tag": "0014_drop_legacy_image_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "5",
+      "when": 1784760000000,
+      "tag": "0019_add_stars_forks",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "5",
+      "when": 1784770000000,
+      "tag": "0020_product_content",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1784780000000,
+      "tag": "0021_tech_stack_detected",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "5",
+      "when": 1784790000000,
+      "tag": "0023_add_content_blocks",
+      "breakpoints": true
     }
   ]
 }

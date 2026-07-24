@@ -20,7 +20,7 @@ export default async function CategoriesPage() {
     .orderBy(sql`count(${ProductCategories.productId}) DESC`)
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12">
+    <main className="mx-auto max-w-[68rem] px-6 lg:px-8 py-12">
       <nav className="mb-8 text-sm text-muted-foreground">
         <Link href="/" className="hover:text-foreground">Forklane</Link>
         <span className="mx-2">/</span>
@@ -32,12 +32,12 @@ export default async function CategoriesPage() {
       {categories.length === 0 ? (
         <p className="text-muted-foreground">No categories have been created yet.</p>
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {categories.map((c) => (
             <li key={c.id}>
               <Link
                 href={`/categories/${c.slug}`}
-                className="block rounded-xl border bg-card p-6 shadow-sm transition-colors hover:bg-accent"
+                className="block rounded-xl border bg-card p-6 shadow-sm transition-colors duration-fast ease-out hover:bg-accent card-lift"
               >
                 <h2 className="text-lg font-semibold">{c.name}</h2>
                 {c.description && (

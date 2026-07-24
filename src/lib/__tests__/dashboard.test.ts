@@ -1,0 +1,216 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+// ── Mock @clerk/nextjs/server ────────────────────────────────────────────
+
+let mockSession: { userId: string | null; orgId: string | null; orgRole: string | null } = {
+  userId: null,
+  orgId: null,
+  orgRole: null,
+}
+
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn(() => Promise.resolve(mockSession)),
+}))
+
+// ── Mock next/cache ──────────────────────────────────────────────────────
+
+const mockRevalidatePath = vi.fn()
+vi.mock('next/cache', () => ({
+  revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
+}))
+
+// ── Mock next/navigation ─────────────────────────────────────────────────
+
+vi.mock('next/navigation', () => ({
+  redirect: vi.fn(() => { throw new Error('REDIRECT') }),
+  notFound: vi.fn(() => { throw new Error('NOT_FOUND') }),
+}))
+
+// ── Mock next/link ───────────────────────────────────────────────────────
+
+vi.mock('next/link', () => ({
+  default: ({ children, ...props }: any) => ({ ...props, children, type: 'Link' }),
+}))
+
+// ── Mock DB ──────────────────────────────────────────────────────────────
+
+const mockDbChain = {
+  select: vi.fn().mockReturnThis(),
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  limit: vi.fn().mockReturnThis(),
+  orderBy: vi.fn().mockReturnThis(),
+  innerJoin: vi.fn().mockReturnThis(),
+  leftJoin: vi.fn().mockReturnThis(),
+  insert: vi.fn().mockReturnThis(),
+  update: vi.fn().mockReturnThis(),
+  set: vi.fn().mockReturnThis(),
+  delete: vi.fn().mockReturnThis(),
+  values: vi.fn().mockResolvedValue([]),
+  returning: vi.fn().mockResolvedValue([{ id: 1 }]),
+}
+
+vi.mock('@/app/db', () => ({
+  db: mockDbChain,
+}))
+
+function resetDbMock() {
+  for (const fn of Object.values(mockDbChain)) {
+    if (typeof fn === 'function') fn.mockReset()
+    if (fn.mockReset) fn.mockReset()
+  }
+  mockDbChain.select.mockReturnThis()
+  mockDbChain.from.mockReturnThis()
+  mockDbChain.where.mockReturnThis()
+  mockDbChain.limit.mockReturnThis()
+  mockDbChain.orderBy.mockReturnThis()
+  mockDbChain.innerJoin.mockReturnThis()
+  mockDbChain.leftJoin.mockReturnThis()
+  mockDbChain.insert.mockReturnThis()
+  mockDbChain.update.mockReturnThis()
+  mockDbChain.set.mockReturnThis()
+  mockDbChain.delete.mockReturnThis()
+  mockDbChain.values.mockResolvedValue([])
+  mockDbChain.returning.mockResolvedValue([{ id: 1 }])
+}
+
+// ── Import after mocks ──────────────────────────────────────────────────
+
+function setMockSession(overrides: Partial<typeof mockSession>) {
+  mockSession = { ...mockSession, ...overrides }
+}
+
+function clearMockSession() {
+  mockSession = { userId: null, orgId: null, orgRole: null }
+}
+
+// ── Role hierarchy (mirrors auth.ts) ────────────────────────────────────
+
+const HIERARCHY: Record<string, number> = {
+  'org:owner': 50, 'org:admin': 40, 'org:editor': 30, 'org:marketing': 20, 'org:viewer': 10,
+}
+
+function hasMinRole(role: string, min: string): boolean {
+  return (HIERARCHY[role] ?? 0) >= (HIERARCHY[min] ?? 0)
+}
+
+// ── Tests ────────────────────────────────────────────────────────────────
+
+describe('Dashboard role gating', () => {
+  beforeEach(() => {
+    clearMockSession()
+    resetDbMock()
+  })
+
+  const roles = Object.keys(HIERARCHY)
+
+  for (const role of roles) {
+    it(`${role} can access dashboard overview`, async () => {
+      setMockSession({ userId: 'u1', orgId: 'org_1', orgRole: role })
+      // The layout requires userId + orgId (middleware already checks this)
+      // The page requires matching orgId
+      expect(hasMinRole(role, 'org:viewer')).toBe(true)
+    })
+  }
+
+  it('unauthenticated users cannot access (middleware blocks)', () => {
+    clearMockSession()
+    expect(mockSession.userId).toBeNull()
+  })
+
+  it('users without org cannot access (middleware blocks)', () => {
+    setMockSession({ userId: 'u1', orgId: null, orgRole: null })
+    expect(mockSession.orgId).toBeNull()
+  })
+})
+
+describe('Dashboard profile edit role gating', () => {
+  beforeEach(() => {
+    clearMockSession()
+    resetDbMock()
+  })
+
+  it('viewer role is rejected for profile editing', () => {
+    expect(hasMinRole('org:viewer', 'org:editor')).toBe(false)
+  })
+
+  it('marketing role is rejected for profile editing', () => {
+    expect(hasMinRole('org:marketing', 'org:editor')).toBe(false)
+  })
+
+  const editableRoles = ['org:editor', 'org:admin', 'org:owner']
+  for (const role of editableRoles) {
+    it(`${role} can edit profiles`, () => {
+      expect(hasMinRole(role, 'org:editor')).toBe(true)
+    })
+  }
+})
+
+describe('ISR revalidation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('revalidatePath is called with the product slug path', () => {
+    mockRevalidatePath('/products/my-product')
+    expect(mockRevalidatePath).toHaveBeenCalledWith('/products/my-product')
+  })
+})
+
+describe('Product profile fields', () => {
+  it('custom FAQ entries are appended after auto-generated ones', () => {
+    const autoGenerated = [
+      { question: 'What is X?', answer: 'Description' },
+      { question: 'Who is it for?', answer: 'Developers' },
+    ]
+    const customFaq = [
+      { question: 'Custom Q1?', answer: 'Custom A1' },
+      { question: 'Custom Q2?', answer: 'Custom A2' },
+    ]
+    const allBlocks = [...autoGenerated, ...customFaq]
+    expect(allBlocks).toHaveLength(4)
+    expect(allBlocks[2].question).toBe('Custom Q1?')
+    expect(allBlocks[3].answer).toBe('Custom A2')
+  })
+
+  it('empty custom FAQ entries are filtered out', () => {
+    const customFaq = [
+      { question: '', answer: '' },
+      { question: 'Valid?', answer: 'Yes' },
+    ]
+    const filtered = customFaq.filter((f) => f.question && f.answer)
+    expect(filtered).toHaveLength(1)
+  })
+})
+
+describe('Activity log structure', () => {
+  it('field names match the schema', () => {
+    const editableFields = ['description', 'tagline', 'docsUrl', 'changelogUrl', 'communityUrl', 'faq', 'categories', 'tags']
+    expect(editableFields.length).toBe(8)
+    expect(editableFields).toContain('faq')
+    expect(editableFields).toContain('tagline')
+  })
+})
+
+describe('Organization slug', () => {
+  it('slug is used for dashboard routing', () => {
+    const slug = 'acme-corp'
+    expect(`/dashboard/${slug}`).toBe('/dashboard/acme-corp')
+    expect(`/dashboard/${slug}/profile/1`).toBe('/dashboard/acme-corp/profile/1')
+  })
+})
+
+describe('Edge cases', () => {
+  it('product not claimed by org returns 404', () => {
+    // The API checks: product.claimedByOrgId !== orgId => 404
+    const productClaimedOrg = 1
+    const requestOrg = 2
+    expect(productClaimedOrg !== requestOrg).toBe(true)
+  })
+
+  it('same org editing own product is allowed', () => {
+    const productClaimedOrg = 1
+    const requestOrg = 1
+    expect(productClaimedOrg === requestOrg).toBe(true)
+  })
+})

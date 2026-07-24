@@ -1,39 +1,58 @@
 'use client'
 
 import { useState } from 'react'
+import { useForm, useFieldArray } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import type { Product } from '@/app/db/schema'
 import posthog from 'posthog-js'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+
+const suggestEditSchema = z.object({
+  changes: z.array(
+    z.object({
+      field: z.string(),
+      value: z.string(),
+    }),
+  ),
+  sourceUrl: z.string().url('Invalid source URL').min(1, 'Source URL is required'),
+})
+
+type SuggestEditInput = z.infer<typeof suggestEditSchema>
 
 interface Props {
   product: Product
 }
 
-interface EditField {
-  field: string
-  value: string
-}
-
 export function SuggestEditForm({ product }: Props) {
-  const [sourceUrl, setSourceUrl] = useState('')
-  const [changes, setChanges] = useState<EditField[]>([
-    { field: 'description', value: product.description },
-    { field: 'license', value: product.license ?? '' },
-    { field: 'homepageUrl', value: product.homepageUrl ?? '' },
-  ])
-  const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [serverError, setServerError] = useState<string | null>(null)
 
-  function updateChange(index: number, updates: Partial<EditField>) {
-    setChanges((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, ...updates } : c))
-    )
-  }
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<SuggestEditInput>({
+    resolver: zodResolver(suggestEditSchema),
+    defaultValues: {
+      changes: [
+        { field: 'description', value: product.description },
+        { field: 'license', value: product.license ?? '' },
+        { field: 'homepageUrl', value: product.homepageUrl ?? '' },
+      ],
+      sourceUrl: '',
+    },
+  })
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    setError(null)
+  const { fields } = useFieldArray({ control, name: 'changes' })
+
+  async function onSubmit(data: SuggestEditInput) {
+    setServerError(null)
 
     try {
       const res = await fetch('/api/contributions', {
@@ -41,99 +60,94 @@ export function SuggestEditForm({ product }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId: product.id,
-          changes: changes.filter((c) => c.value !== ''),
-          sourceUrl,
+          changes: data.changes.filter((c) => c.value !== ''),
+          sourceUrl: data.sourceUrl,
         }),
       })
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error ?? 'Failed to submit')
+        const body = await res.json()
+        throw new Error(body.error ?? 'Failed to submit')
       }
 
       posthog.capture('product_edit_suggested', {
         product_id: product.id,
         product_slug: product.slug,
-        fields_changed: changes.filter((c) => c.value !== '').map((c) => c.field),
+        fields_changed: data.changes.filter((c) => c.value !== '').map((c) => c.field),
       })
       setSubmitted(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
-    } finally {
-      setSubmitting(false)
+      setServerError(err instanceof Error ? err.message : 'Something went wrong')
     }
   }
 
   if (submitted) {
     return (
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
-        <h2 className="text-lg font-semibold">Thank you!</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Your suggestion has been submitted for review. A moderator will review it shortly.
-        </p>
-      </div>
+      <Card>
+        <CardContent>
+          <h2 className="text-lg font-semibold">Thank you!</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your suggestion has been submitted for review. A moderator will review it shortly.
+          </p>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="rounded-xl border bg-card p-6 shadow-sm">
-      <h2 className="mb-4 text-lg font-semibold">Suggest an Edit</h2>
+    <Card>
+      <CardContent>
+        <h2 className="mb-4 text-lg font-semibold">Suggest an Edit</h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-3">
-          {changes.map((change, i) => (
-            <div key={change.field}>
-              <label className="mb-1 block text-sm font-medium capitalize">
-                {change.field}
-              </label>
-              {change.field === 'description' ? (
-                <textarea
-                  value={change.value}
-                  onChange={(e) => updateChange(i, { value: e.target.value })}
-                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
-                  rows={3}
-                />
-              ) : (
-                <input
-                  type="text"
-                  value={change.value}
-                  onChange={(e) => updateChange(i, { value: e.target.value })}
-                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
-                />
-              )}
-            </div>
-          ))}
-        </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-3">
+            {fields.map((field, i) => (
+              <div key={field.id}>
+                <Label className="mb-1 block capitalize">
+                  {field.field}
+                </Label>
+                {field.field === 'description' ? (
+                  <Textarea
+                    rows={3}
+                    {...register(`changes.${i}.value`)}
+                  />
+                ) : (
+                  <Input
+                    type="text"
+                    {...register(`changes.${i}.value`)}
+                  />
+                )}
+                <input type="hidden" {...register(`changes.${i}.field`)} />
+              </div>
+            ))}
+          </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Source URL <span className="text-destructive">*</span>
-          </label>
-          <input
-            type="url"
-            value={sourceUrl}
-            onChange={(e) => setSourceUrl(e.target.value)}
-            placeholder="https://github.com/..."
-            required
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
-          />
-          <p className="mt-1 text-xs text-muted-foreground">
-            Link to evidence supporting your edit (GitHub issue, docs page, etc.)
-          </p>
-        </div>
+          <div>
+            <Label className="mb-1 block">
+              Source URL <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              type="url"
+              placeholder="https://github.com/..."
+              {...register('sourceUrl')}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Link to evidence supporting your edit (GitHub issue, docs page, etc.)
+            </p>
+            {errors.sourceUrl && (
+              <p className="mt-1 text-xs text-destructive">{errors.sourceUrl.message}</p>
+            )}
+          </div>
 
-        {error && (
-          <p className="text-sm text-destructive">{error}</p>
-        )}
+          {serverError && (
+            <p className="text-sm text-destructive">{serverError}</p>
+          )}
 
-        <button
-          type="submit"
-          disabled={submitting || !sourceUrl}
-          className="rounded-lg bg-foreground px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
-        >
-          {submitting ? 'Submitting...' : 'Submit Suggestion'}
-        </button>
-      </form>
-    </div>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Submitting...' : 'Submit Suggestion'}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   )
 }

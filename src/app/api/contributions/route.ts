@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/app/db'
 import { Contributions, Contributors, Products } from '@/app/db/schema'
-import { eq, and, sql } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { auth } from '@clerk/nextjs/server'
 import { getPostHogClient } from '@/lib/posthog-server'
+import { createContributionSchema, formatZodError } from '@/lib/validation'
 
 const AUTO_APPROVE_THRESHOLD = parseInt(process.env.CONTRIBUTOR_AUTO_APPROVE_THRESHOLD ?? '50', 10)
 
@@ -13,19 +14,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
   }
 
-  const body = await req.json()
-  const { productId, changes, sourceUrl } = body
+  const raw = await req.json()
+  const parsed = createContributionSchema.safeParse(raw)
 
-  if (!productId || !changes || !sourceUrl) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  if (!parsed.success) {
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 })
   }
 
-  // Validate source URL
-  try {
-    new URL(sourceUrl)
-  } catch {
-    return NextResponse.json({ error: 'Invalid source URL' }, { status: 400 })
-  }
+  const { productId, changes, sourceUrl } = parsed.data
 
   // Find or create contributor
   let contributorRows = await db

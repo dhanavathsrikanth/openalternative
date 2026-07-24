@@ -161,13 +161,16 @@ function buildMigrationPath(p: Product): string {
 export function ProductQA({ product }: Props) {
   const blocks = generateQA(product)
 
+  const customFaq = (product.faq as { question: string; answer: string }[] | null) ?? []
+  const allBlocks = [...blocks, ...customFaq.filter((f) => f.question && f.answer)]
+
   return (
     <section className="rounded-xl border bg-card p-6 shadow-sm">
       <h2 className="mb-6 text-xl font-semibold">
         Frequently Asked Questions
       </h2>
       <dl className="space-y-6">
-        {blocks.map((block) => (
+        {allBlocks.map((block) => (
           <div key={block.question}>
             <dt className="font-medium">{block.question}</dt>
             <dd className="mt-1 text-sm text-muted-foreground leading-relaxed">

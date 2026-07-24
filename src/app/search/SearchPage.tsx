@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { LicenseBadge } from '@/app/products/[slug]/LicenseBadge'
+import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import posthog from 'posthog-js'
 
@@ -14,7 +15,8 @@ interface SearchResult {
   license: string | null
   primaryLanguage: string | null
   deploymentMethods: string[] | null
-  confidenceScore: string | null
+  stars: number | null
+  forks: number | null
   githubUrl: string | null
   rank: number
 }
@@ -31,6 +33,11 @@ interface Props {
   initialLicense?: string
   initialLanguage?: string
   initialDeployment?: string
+}
+
+function formatNumber(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+  return n.toLocaleString()
 }
 
 export function SearchPage({ initialQuery, initialLicense, initialLanguage, initialDeployment }: Props) {
@@ -98,7 +105,7 @@ export function SearchPage({ initialQuery, initialLicense, initialLanguage, init
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12">
+    <main className="mx-auto max-w-[68rem] px-6 lg:px-8 py-12">
       {/* Breadcrumb */}
       <nav className="mb-8 text-sm text-muted-foreground">
         <Link href="/" className="hover:text-foreground">Forklane</Link>
@@ -171,9 +178,9 @@ export function SearchPage({ initialQuery, initialLicense, initialLanguage, init
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse rounded-xl border bg-card p-6">
-              <div className="h-5 w-32 rounded bg-muted" />
-              <div className="mt-2 h-4 w-64 rounded bg-muted" />
+            <div key={i} className="rounded-xl border bg-card p-6">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="mt-2 h-4 w-64" />
             </div>
           ))}
         </div>
@@ -187,7 +194,7 @@ export function SearchPage({ initialQuery, initialLicense, initialLanguage, init
               <li key={r.id}>
                 <Link
                   href={`/products/${r.slug}`}
-                  className="block rounded-xl border bg-card p-5 shadow-sm transition-colors hover:bg-accent"
+                  className="block rounded-xl border bg-card p-5 shadow-sm transition-colors duration-fast ease-out hover:bg-accent card-lift"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
@@ -200,11 +207,24 @@ export function SearchPage({ initialQuery, initialLicense, initialLanguage, init
                       </div>
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.description}</p>
                     </div>
-                    {r.confidenceScore && (
-                      <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium tabular-nums">
-                        {Math.round(parseFloat(r.confidenceScore))}
-                      </span>
-                    )}
+                    <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
+                      {r.stars != null && (
+                        <span className="inline-flex items-center gap-1">
+                          <svg className="size-3.5 shrink-0 text-yellow-500" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                          </svg>
+                          {formatNumber(r.stars)}
+                        </span>
+                      )}
+                      {r.forks != null && (
+                        <span className="inline-flex items-center gap-1">
+                          <svg className="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="18" r="3" /><circle cx="6" cy="6" r="3" /><circle cx="18" cy="6" r="3" /><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9" /><path d="M12 12v3" />
+                          </svg>
+                          {formatNumber(r.forks)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </Link>
               </li>

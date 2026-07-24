@@ -1,11 +1,23 @@
 import type { Product } from '@/app/db/schema'
+import { extractFaqPairs, extractInstallSteps } from '@/lib/blocks/extract-structured-data'
+
+interface InstallMethod {
+  method: string
+  label: string
+  commands: string[]
+  extracted: boolean
+}
 
 interface Props {
   product: Product
+  logoUrl?: string | null
+  installMethods?: InstallMethod[] | null
+  faqPairs?: { question: string; answer: string }[] | null
+  contentBlocks?: unknown[] | null
 }
 
-export function ProductJsonLd({ product }: Props) {
-  const jsonLd = {
+function buildSoftwareApplication(product: Product, logoUrl?: string | null) {
+  return {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: product.name,
@@ -13,6 +25,7 @@ export function ProductJsonLd({ product }: Props) {
     url: product.homepageUrl ?? product.githubUrl ?? `https://forklane.dev/products/${product.slug}`,
     applicationCategory: 'DeveloperApplication',
     operatingSystem: 'Cross-platform',
+    ...(logoUrl && { image: logoUrl }),
     ...(product.license && {
       license: `https://spdx.org/licenses/${product.license}`,
     }),
@@ -32,11 +45,72 @@ export function ProductJsonLd({ product }: Props) {
       },
     }),
   }
+}
+
+function buildFaqPage(faqPairs: { question: string; answer: string }[]) {
+  if (faqPairs.length === 0) return null
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqPairs.map((f) => ({
+      '@type': 'Question',
+      name: f.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: f.answer,
+      },
+    })),
+  }
+}
+
+function buildHowTo(steps: { label: string; commands: string[] }[]) {
+  if (steps.length === 0) return null
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: `How to install`,
+    step: steps.map((s, i) => ({
+      '@type': 'HowToStep',
+      position: i + 1,
+      name: s.label,
+      text: s.commands.join('\n'),
+    })),
+  }
+}
+
+export function ProductJsonLd({ product, logoUrl, installMethods, faqPairs, contentBlocks }: Props) {
+  const softwareApp = buildSoftwareApplication(product, logoUrl)
+
+  // Prefer contentBlocks extraction; fall back to legacy props
+  const resolvedFaqPairs = faqPairs && faqPairs.length > 0
+    ? faqPairs
+    : extractFaqPairs(contentBlocks)
+
+  const resolvedInstallSteps = installMethods && installMethods.length > 0
+    ? installMethods.map((m) => ({ label: m.label, commands: m.commands }))
+    : extractInstallSteps(contentBlocks)
+
+  const faqPage = buildFaqPage(resolvedFaqPairs)
+  const howTo = buildHowTo(resolvedInstallSteps)
 
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApp) }}
+      />
+      {faqPage && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPage) }}
+        />
+      )}
+      {howTo && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(howTo) }}
+        />
+      )}
+    </>
   )
 }

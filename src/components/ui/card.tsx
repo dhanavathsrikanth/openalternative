@@ -7,8 +7,9 @@ const Card = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
+    data-slot="card"
     className={cn(
-      "rounded-xl border bg-card text-card-foreground shadow-sm",
+      "relative rounded-radius-card border border-border-default bg-surface-raised shadow-elevation-1 transition-[background-color,border-color,box-shadow] duration-fast ease-out after:pointer-events-none after:absolute after:inset-0 after:rounded-radius-card after:border-4 after:border-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand/60",
       className
     )}
     {...props}
@@ -22,7 +23,8 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    data-slot="card-header"
+    className={cn("flex flex-col gap-1.5 p-inset-card", className)}
     {...props}
   />
 ))
@@ -34,7 +36,8 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-2xl font-semibold leading-none tracking-tight", className)}
+    data-slot="card-title"
+    className={cn("text-display-sm font-semibold tracking-tight text-text-primary", className)}
     {...props}
   />
 ))
@@ -46,7 +49,8 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    data-slot="card-description"
+    className={cn("text-body-sm text-text-tertiary", className)}
     {...props}
   />
 ))
@@ -56,7 +60,7 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+  <div ref={ref} data-slot="card-content" className={cn("p-inset-card pt-0", className)} {...props} />
 ))
 CardContent.displayName = "CardContent"
 
@@ -66,7 +70,8 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex items-center p-6 pt-0", className)}
+    data-slot="card-footer"
+    className={cn("flex items-center p-inset-card pt-0", className)}
     {...props}
   />
 ))

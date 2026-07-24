@@ -25,6 +25,7 @@ export interface CanonicalProduct {
   githubUrl: string | null
   homepageUrl: string | null
   deploymentMethods: string[]
+  topics: string[]
   isArchived: boolean
   isAbandoned: boolean
   isFork: boolean
@@ -47,7 +48,7 @@ export function toSlug(name: string): string {
  * Determine if a repo is archived or abandoned based on signals.
  */
 export function isArchived(payload: Record<string, unknown>): boolean {
-  // GitHub sets `archived` boolean directly
+  // GitHub sets `archived` boolean directly (now fetched via GraphQL)
   if (payload.archived === true) return true
 
   // crates.io uses `updated_at`; if stale for >180 days, flag it
@@ -135,6 +136,13 @@ export function extractHomepageUrl(payload: Record<string, unknown>): string | n
 }
 
 /**
+ * Extract topics from a payload.
+ */
+export function extractTopics(payload: Record<string, unknown>): string[] {
+  return (payload.topics as string[]) || []
+}
+
+/**
  * Resolve a single raw signal into a canonical product.
  * Does NOT write to the database — pure function.
  */
@@ -158,6 +166,7 @@ export function resolveCanonical(input: RawProductInput): CanonicalProduct {
     githubUrl: extractGithubUrl(payload),
     homepageUrl: extractHomepageUrl(payload),
     deploymentMethods: detectDeploymentMethods(payload),
+    topics: extractTopics(payload),
     isArchived: isArchived(payload),
     isAbandoned: isAbandoned(payload),
     isFork: isFork(payload),

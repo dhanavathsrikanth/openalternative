@@ -4,6 +4,7 @@ import { db } from '@/app/db'
 import { Reviews, Contributors } from '@/app/db/schema'
 import { and, eq } from 'drizzle-orm'
 import { getPostHogClient } from '@/lib/posthog-server'
+import { createReviewSchema, getReviewsSchema, formatZodError } from '@/lib/validation'
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -24,24 +25,14 @@ export async function POST(req: NextRequest) {
 
   const contributor = contributorRows[0]
 
-  const body = await req.json()
-  const { productId, rating, reviewBody } = body as {
-    productId: number
-    rating: number
-    reviewBody: string
+  const raw = await req.json()
+  const parsed = createReviewSchema.safeParse(raw)
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 })
   }
 
-  if (!productId || !rating || !reviewBody) {
-    return NextResponse.json({ error: 'productId, rating, and reviewBody are required' }, { status: 400 })
-  }
-
-  if (typeof rating !== 'number' || rating < 1 || rating > 5) {
-    return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 })
-  }
-
-  if (reviewBody.trim().length < 10) {
-    return NextResponse.json({ error: 'Review must be at least 10 characters' }, { status: 400 })
-  }
+  const { productId, rating, reviewBody } = parsed.data
 
   const existing = await db
     .select()
@@ -87,11 +78,19 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const productId = searchParams.get('productId')
+  const raw = { productId: searchParams.get('productId') ?? '' }
 
-  if (!productId) {
+  if (!raw.productId) {
     return NextResponse.json({ error: 'productId is required' }, { status: 400 })
   }
+
+  const parsed = getReviewsSchema.safeParse(raw)
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 })
+  }
+
+  const productId = parseInt(parsed.data.productId, 10)
 
   const reviews = await db
     .select({
@@ -103,7 +102,7 @@ export async function GET(req: NextRequest) {
     })
     .from(Reviews)
     .leftJoin(Contributors, eq(Reviews.contributorId, Contributors.id))
-    .where(eq(Reviews.productId, parseInt(productId)))
+    .where(eq(Reviews.productId, productId))
 
   return NextResponse.json({ reviews })
 }

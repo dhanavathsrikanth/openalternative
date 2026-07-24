@@ -65,6 +65,7 @@ const EXPORT_KEYWORDS = ['export', 'import', 'migrate', 'migration', 'backup', '
 export function scoreActivityTrend(payload: Record<string, unknown>): number {
   const stars = (payload.stars as number) || 0
   const forks = (payload.forks as number) || 0
+  const watchers = (payload.watchers as number) || 0
   const recentDownloads = (payload.recentDownloads as number) || 0
   const openIssues = (payload.openIssues as number) || 0
   const latestRelease = payload.latestRelease as { publishedAt?: string } | null
@@ -73,19 +74,25 @@ export function scoreActivityTrend(payload: Record<string, unknown>): number {
 
   let score = 0
 
-  // Stars indicate adoption (0-30 pts)
-  if (stars > 50000) score += 30
-  else if (stars > 10000) score += 25
-  else if (stars > 5000) score += 20
-  else if (stars > 1000) score += 15
-  else if (stars > 100) score += 10
-  else if (stars > 10) score += 5
+  // Stars indicate adoption (0-25 pts)
+  if (stars > 50000) score += 25
+  else if (stars > 10000) score += 22
+  else if (stars > 5000) score += 18
+  else if (stars > 1000) score += 14
+  else if (stars > 100) score += 9
+  else if (stars > 10) score += 4
 
-  // Forks indicate usage (0-15 pts)
-  if (forks > 5000) score += 15
-  else if (forks > 1000) score += 12
-  else if (forks > 200) score += 8
-  else if (forks > 50) score += 4
+  // Forks indicate usage (0-12 pts)
+  if (forks > 5000) score += 12
+  else if (forks > 1000) score += 10
+  else if (forks > 200) score += 7
+  else if (forks > 50) score += 3
+
+  // Watchers indicate active interest (0-8 pts)
+  if (watchers > 1000) score += 8
+  else if (watchers > 200) score += 6
+  else if (watchers > 50) score += 4
+  else if (watchers > 10) score += 2
 
   // Recent release (0-20 pts)
   if (latestRelease?.publishedAt) {
@@ -139,6 +146,7 @@ export function scoreSelfHostingComplexity(payload: Record<string, unknown>): nu
   const description = ((payload.description as string) || '').toLowerCase()
   const repo = ((payload.repository as string) || '').toLowerCase()
   const homepage = ((payload.homepage as string) || '').toLowerCase()
+  const repoSize = (payload.size as number) || 0
   const all = `${description} ${repo} ${homepage}`
 
   let score = 70 // baseline — most OSS tools are reasonably self-hostable
@@ -157,6 +165,12 @@ export function scoreSelfHostingComplexity(payload: Record<string, unknown>): nu
     score -= 10
   }
 
+  // Repo size penalty — very large repos are harder to self-host
+  // size is in KB from GitHub (disk_usage)
+  if (repoSize > 500_000) score -= 15      // >500MB
+  else if (repoSize > 100_000) score -= 10  // >100MB
+  else if (repoSize > 50_000) score -= 5    // >50MB
+
   return Math.max(0, Math.min(100, score))
 }
 
@@ -164,7 +178,8 @@ export function scoreDataExportCapability(payload: Record<string, unknown>): num
   const description = ((payload.description as string) || '').toLowerCase()
   const keywords = ((payload.keywords as string[]) || []).map((k) => k.toLowerCase())
   const categories = ((payload.categories as string[]) || []).map((c) => c.toLowerCase())
-  const all = `${description} ${keywords.join(' ')} ${categories.join(' ')}`
+  const topics = ((payload.topics as string[]) || []).map((t) => t.toLowerCase())
+  const all = `${description} ${keywords.join(' ')} ${categories.join(' ')} ${topics.join(' ')}`
 
   let score = 50 // baseline
 

@@ -2,6 +2,26 @@
 
 Neon Postgres with Drizzle ORM. Schema lives in `schema.ts`; migrations are generated into `migrations/`.
 
+## Connection Policy
+
+Neon provides two connection endpoints — **pooled** (`-pooler` host) and **direct** (no suffix). The app uses both, strictly separated by purpose:
+
+| Endpoint | Env var | Used by |
+|----------|---------|---------|
+| **Pooled** (`-pooler`) | `DATABASE_URL` | `src/app/db/index.ts` — all runtime queries (server components, API routes, cron jobs) |
+| **Direct** (non-pooled) | `DATABASE_URL_UNPOOLED` | `drizzle.config.ts` (migrations), `scripts/*.ts` (one-off DDL/diagnostic scripts) |
+
+### Why this matters
+
+- The **pooled** endpoint uses Neon's transaction-mode connection pooler. Each HTTP request gets a short-lived connection from the pool, which is released immediately after the query completes. This prevents connection exhaustion under concurrent serverless load (Vercel functions, cron jobs firing in parallel).
+- The **direct** endpoint connects straight to the compute instance. It is appropriate for **long-running, single-client operations** like `drizzle-kit push`, schema migrations, and backfill scripts where holding a connection for the duration is expected and no other client needs it.
+
+### Rules
+
+1. **Never** use `DATABASE_URL_UNPOOLED` in production runtime code (`src/`).
+2. **Never** use `DATABASE_URL` (pooled) in migration scripts or one-off `scripts/`.
+3. When adding a new script, explicitly select the correct env var — do not import `db` from `@/app/db` if you need the direct endpoint; create your own `neon()` connection with `DATABASE_URL_UNPOOLED`.
+
 ## Migration Workflow
 
 ### 1. Edit the schema

@@ -24,7 +24,7 @@ export default async function MethodologyPage() {
   const html = await getMethodologyContent()
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12">
+    <main className="mx-auto max-w-3xl px-6 lg:px-8 py-12">
       <header className="mb-10">
         <h1 className="text-4xl font-bold tracking-tight">Methodology</h1>
         <p className="mt-3 text-lg text-muted-foreground">

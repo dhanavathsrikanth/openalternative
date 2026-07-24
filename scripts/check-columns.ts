@@ -3,7 +3,8 @@ import * as dotenv from 'dotenv'
 
 dotenv.config({ path: '.env.local' })
 
-const sql = neon(process.env.DATABASE_URL!)
+// One-off diagnostic script — use direct (non-pooled) endpoint.
+const sql = neon(process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL!)
 
 async function main() {
   // Check if search_vector column exists

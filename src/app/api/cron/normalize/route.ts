@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/app/db'
-import { RawSignals, Products } from '@/app/db/schema'
+import { RawSignals, Products, ProductCategories, ProductTags, ProductAssets } from '@/app/db/schema'
 import { eq, and, sql } from 'drizzle-orm'
 import { verifySecret, unauthorized } from '@/lib/cron-auth'
+import { logAudit } from '@/lib/audit'
 import { resolveCanonical } from '@/lib/normalize/canonicalResolver'
 import { computeConfidenceScore } from '@/lib/scoring/confidenceScore'
+import { validatePublishable } from '@/lib/validation/product'
+import { detectTechFromGithub } from '@/lib/content-gen/tech-detect'
 import * as Sentry from '@sentry/nextjs'
 
 const BATCH_SIZE = 50
@@ -73,6 +76,30 @@ export async function GET(req: NextRequest) {
         })
 
         const { score, breakdown } = computeConfidenceScore(payload)
+        const stars = (payload.stars as number) || null
+        const forks = (payload.forks as number) || null
+        const openIssues = (payload.openIssues as number) || null
+        const watchers = (payload.watchers as number) || null
+        const topics = (payload.topics as string[]) || null
+        const repoSize = (payload.size as number) || null
+        const isArchived = (payload.archived as boolean) || false
+        const isFork = (payload.fork as boolean) || false
+        const lastPushedAt = payload.pushedAt ? new Date(payload.pushedAt as string) : null
+        const defaultBranch = (payload.defaultBranch as string) || null
+
+        // Detect tech stack from GitHub manifests (best-effort, non-blocking)
+        let techStackDetected: unknown = null
+        if (canonical.githubUrl) {
+          try {
+            techStackDetected = await detectTechFromGithub(
+              canonical.githubUrl,
+              canonical.primaryLanguage,
+              defaultBranch ?? undefined,
+            )
+          } catch {
+            // Detection failure must not block normalization
+          }
+        }
 
         // Upsert product: insert if slug doesn't exist, update if it does
         const existing = await db
@@ -81,12 +108,32 @@ export async function GET(req: NextRequest) {
           .where(eq(Products.slug, canonical.slug))
           .limit(1)
 
-        // A product is publishable if it has a description and at least
-        // a GitHub URL or homepage URL — otherwise keep it as draft for
-        // manual review.
-        const hasDescription = canonical.description.length > 0
-        const hasUrl = !!(canonical.githubUrl || canonical.homepageUrl)
-        const publishable = hasDescription && hasUrl
+        // A product is publishable only if it passes the shared validation
+        // (name, slug, tagline, description, logo, at least one category & tag).
+        // Drafts can be messy — publish is gated until all fields are present.
+        const [catCount] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(ProductCategories)
+          .where(eq(ProductCategories.productId, existing.length > 0 ? existing[0].id : -1))
+        const [tagCount] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(ProductTags)
+          .where(eq(ProductTags.productId, existing.length > 0 ? existing[0].id : -1))
+        const [logoRow] = await db
+          .select({ url: ProductAssets.url })
+          .from(ProductAssets)
+          .where(eq(ProductAssets.productId, existing.length > 0 ? existing[0].id : -1))
+          .limit(1)
+
+        const publishable = validatePublishable({
+          name: canonical.name,
+          slug: canonical.slug,
+          tagline: null,
+          description: canonical.description,
+          logoUrl: logoRow?.url ?? null,
+          categoryCount: catCount?.count ?? 0,
+          tagCount: tagCount?.count ?? 0,
+        }) === true
 
         if (existing.length === 0) {
           // Insert new product
@@ -99,11 +146,25 @@ export async function GET(req: NextRequest) {
             deploymentMethods: canonical.deploymentMethods,
             githubUrl: canonical.githubUrl,
             homepageUrl: canonical.homepageUrl,
+            stars,
+            forks,
+            openIssues,
+            watchers,
+            topics,
+            repoSize,
+            isArchived,
+            isFork,
+            lastPushedAt,
+            defaultBranch,
             confidenceScore: String(score),
             scoreBreakdown: breakdown,
+            techStackDetected,
             status: publishable ? 'published' : 'draft',
             lastVerifiedAt: new Date(),
           })
+          if (publishable) {
+            await logAudit('system', 'product.published', 'product', canonical.slug, null, { slug: canonical.slug, name: canonical.name })
+          }
         } else {
           // Update existing product — keep the higher score
           const currentProduct = await db
@@ -127,14 +188,28 @@ export async function GET(req: NextRequest) {
                 deploymentMethods: canonical.deploymentMethods,
                 githubUrl: canonical.githubUrl || undefined,
                 homepageUrl: canonical.homepageUrl || undefined,
+                stars,
+                forks,
+                openIssues,
+                watchers,
+                topics,
+                repoSize,
+                isArchived,
+                isFork,
+                lastPushedAt,
+                defaultBranch,
                 confidenceScore: String(score),
                 scoreBreakdown: breakdown,
+                techStackDetected,
                 // Promote draft to published once it qualifies
                 ...(publishable ? { status: 'published' as const } : {}),
                 lastVerifiedAt: new Date(),
                 updatedAt: new Date(),
               })
               .where(eq(Products.id, existing[0].id))
+            if (publishable) {
+              await logAudit('system', 'product.published', 'product', canonical.slug, null, { slug: canonical.slug })
+            }
           }
         }
 

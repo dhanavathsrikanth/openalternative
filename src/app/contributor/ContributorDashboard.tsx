@@ -9,7 +9,7 @@ interface Props {
 
 export function ContributorDashboard({ contributor }: Props) {
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12">
+    <main className="mx-auto max-w-[68rem] px-6 lg:px-8 py-12">
       <nav className="mb-8 text-sm text-muted-foreground">
         <Link href="/" className="hover:text-foreground">Forklane</Link>
         <span className="mx-2">/</span>

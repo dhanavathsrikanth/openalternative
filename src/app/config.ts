@@ -9,5 +9,6 @@ export default function getEnv (env: NodeJS.ProcessEnv) {
     DATABASE_URL: get('DATABASE_URL').required().asString(),
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: get('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY').required().asString(),
     CLERK_SECRET_KEY: get('CLERK_SECRET_KEY').required().asString(),
+    ANTHROPIC_API_KEY: get('ANTHROPIC_API_KEY').optional().asString(),
   }
 }

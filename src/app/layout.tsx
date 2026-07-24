@@ -4,6 +4,8 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/next";
 import { PostHogIdentify } from "@/components/PostHogIdentify";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,10 +27,17 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body className={inter.className}>
+          <a href="#main-content" className="skip-to-content">
+            Skip to content
+          </a>
           <PostHogIdentify />
-          {children}
+          <SiteHeader />
+          <div id="main-content">
+            {children}
+          </div>
+          <SiteFooter />
+          <Analytics />
         </body>
-        <Analytics />
       </html>
     </ClerkProvider>
   );

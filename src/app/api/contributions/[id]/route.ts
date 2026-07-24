@@ -3,12 +3,13 @@ import { db } from '@/app/db'
 import { Contributions, Contributors, Products } from '@/app/db/schema'
 import { eq, sql } from 'drizzle-orm'
 import { verifySecret } from '@/lib/cron-auth'
+import { withAudit } from '@/lib/audit'
 import { getPostHogClient } from '@/lib/posthog-server'
+import { moderateContributionSchema, formatZodError } from '@/lib/validation'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
-  // Basic auth check for moderation endpoints
   if (!verifySecret(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -19,12 +20,14 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Invalid contribution ID' }, { status: 400 })
   }
 
-  const body = await req.json()
-  const { status } = body
+  const raw = await req.json()
+  const parsed = moderateContributionSchema.safeParse(raw)
 
-  if (status !== 'approved' && status !== 'rejected') {
-    return NextResponse.json({ error: 'Status must be "approved" or "rejected"' }, { status: 400 })
+  if (!parsed.success) {
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 })
   }
+
+  const { status } = parsed.data
 
   // Find contribution
   const rows = await db
@@ -44,39 +47,48 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   }
 
   // Update status
-  await db
-    .update(Contributions)
-    .set({ status })
-    .where(eq(Contributions.id, contributionId))
+  await withAudit(
+    'system',
+    `contribution.${status}`,
+    'contribution',
+    String(contributionId),
+    async () => ({ ...contribution }),
+    async (tx) => {
+      await tx
+        .update(Contributions)
+        .set({ status })
+        .where(eq(Contributions.id, contributionId))
 
-  if (status === 'approved') {
-    // Apply changes to product
-    const changes = (typeof contribution.changes === 'object' && contribution.changes !== null
-      ? contribution.changes
-      : []) as { field: string; value: string }[]
+      if (status === 'approved') {
+        // Apply changes to product
+        const changes = (typeof contribution.changes === 'object' && contribution.changes !== null
+          ? contribution.changes
+          : []) as { field: string; value: string }[]
 
-    const updateData: Record<string, string> = {}
-    for (const change of changes) {
-      if (['description', 'license', 'homepageUrl', 'primaryLanguage'].includes(change.field)) {
-        updateData[change.field] = change.value
+        const updateData: Record<string, string> = {}
+        for (const change of changes) {
+          if (['description', 'license', 'homepageUrl', 'primaryLanguage'].includes(change.field)) {
+            updateData[change.field] = change.value
+          }
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await tx
+            .update(Products)
+            .set({ ...updateData, updatedAt: new Date() })
+            .where(eq(Products.id, contribution.productId))
+        }
+
+        // Increment contributor reputation
+        await tx
+          .update(Contributors)
+          .set({
+            reputationPoints: sql`${Contributors.reputationPoints} + 5`,
+          })
+          .where(eq(Contributors.id, contribution.contributorId))
       }
-    }
-
-    if (Object.keys(updateData).length > 0) {
-      await db
-        .update(Products)
-        .set({ ...updateData, updatedAt: new Date() })
-        .where(eq(Products.id, contribution.productId))
-    }
-
-    // Increment contributor reputation
-    await db
-      .update(Contributors)
-      .set({
-        reputationPoints: sql`${Contributors.reputationPoints} + 5`,
-      })
-      .where(eq(Contributors.id, contribution.contributorId))
-  }
+    },
+  )
 
   const posthog = getPostHogClient()
   posthog.capture({

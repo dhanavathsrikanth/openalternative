@@ -54,7 +54,7 @@ export function ComparePage({ productA, productB, comparison }: Props) {
   const scoreB = productB.confidenceScore ? parseFloat(productB.confidenceScore) : null
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-12">
+    <main className="mx-auto max-w-[68rem] px-6 lg:px-8 py-12">
       {/* Breadcrumb */}
       <nav className="mb-8 text-sm text-muted-foreground">
         <Link href="/" className="hover:text-foreground">Forklane</Link>
@@ -78,7 +78,7 @@ export function ComparePage({ productA, productB, comparison }: Props) {
           <Link
             key={p.id}
             href={`/products/${p.slug}`}
-            className="block rounded-xl border bg-card p-6 shadow-sm transition-colors hover:bg-accent"
+            className="block rounded-xl border bg-card p-6 shadow-sm transition-colors duration-fast ease-out hover:bg-accent card-lift"
           >
             <div className="mb-3 flex items-start justify-between gap-3">
               <h2 className="text-xl font-semibold">{p.name}</h2>
