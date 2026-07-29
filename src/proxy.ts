@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import createMiddleware from 'next-intl/middleware'
+import { routing } from './i18n/routing'
 import { db } from '@/app/db'
 import { Users } from '@/app/db/schema'
 import { eq } from 'drizzle-orm'
 
+const handleI18nRouting = createMiddleware(routing)
+
 const isDashboardRoute = createRouteMatcher(['/dashboard(.*)'])
 const isAdminRoute = createRouteMatcher(['/admin(.*)'])
+const isSignInRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)', '/contributor/sign-in(.*)', '/contributor/sign-up(.*)'])
+const isApiRoute = createRouteMatcher(['/api(.*)', '/internal(.*)', '/sentry-tunnel(.*)', '/ingest(.*)'])
 
 function isInternalRoute(pathname: string): boolean {
   return pathname.startsWith('/internal')
@@ -91,6 +97,22 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
     return NextResponse.next()
+  }
+
+  // For non-API, non-admin, non-dashboard routes: apply i18n locale detection
+  if (!isApiRoute(req) && !isSignInRoute(req)) {
+    const i18nResponse = handleI18nRouting(req)
+    // Only use the i18n response if it's a redirect (locale detection)
+    // or if the pathname doesn't already have a locale prefix
+    if (i18nResponse && i18nResponse.status === 307 || i18nResponse.status === 308) {
+      return i18nResponse
+    }
+    // For pages that already have a locale prefix, pass through
+    const localePrefixes = routing.locales.map((l) => `/${l}/`)
+    const hasLocalePrefix = localePrefixes.some((p) => pathname.startsWith(p)) || routing.locales.some((l) => pathname === `/${l}`)
+    if (!hasLocalePrefix) {
+      return i18nResponse
+    }
   }
 
   // Everything else: public routes pass through untouched

@@ -1,6 +1,6 @@
 import { db } from '@/app/db'
 import { Products, Comparisons, Collections } from '@/app/db/schema'
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, and, inArray } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +10,7 @@ export async function GET() {
   const products = await db
     .select({ slug: Products.slug, name: Products.name, description: Products.description })
     .from(Products)
+    .where(inArray(Products.status, ['published']))
     .orderBy(desc(Products.confidenceScore))
     .limit(100)
 
@@ -19,7 +20,7 @@ export async function GET() {
       productAName: Products.name,
     })
     .from(Comparisons)
-    .innerJoin(Products, eq(Comparisons.productAId, Products.id))
+    .innerJoin(Products, and(eq(Comparisons.productAId, Products.id), inArray(Products.status, ['published'])))
     .limit(50)
 
   const comparisonRowsB = await db
@@ -28,7 +29,7 @@ export async function GET() {
       productBName: Products.name,
     })
     .from(Comparisons)
-    .innerJoin(Products, eq(Comparisons.productBId, Products.id))
+    .innerJoin(Products, and(eq(Comparisons.productBId, Products.id), inArray(Products.status, ['published'])))
     .limit(50)
 
   const comparisons = comparisonRows.map((row, i) => ({
@@ -56,6 +57,7 @@ export async function GET() {
   lines.push('- [Products](https://forklane.dev/products) – Browse all open-source alternatives')
   lines.push('- [Compare](https://forklane.dev/compare) – Side-by-side tool comparisons')
   lines.push('- [Collections](https://forklane.dev/collections) – Curated product groupings')
+  lines.push('- [The Graveyard](https://forklane.dev/graveyard) – Historical archive of delisted projects')
   lines.push('- [Contributors](https://forklane.dev/contributors) – Community leaderboard')
   lines.push('- [Guides](https://forklane.dev/guides) – Expert editorial content')
   lines.push('')
@@ -63,7 +65,7 @@ export async function GET() {
   lines.push('')
 
   for (const p of products) {
-    lines.push(`- [${p.name}](https://forklane.dev/products/${p.slug}) – ${p.description}`)
+    lines.push(`- [${p.name}](https://forklane.dev/product/${p.slug}) – ${p.description}`)
   }
 
   lines.push('')

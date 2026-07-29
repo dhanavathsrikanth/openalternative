@@ -1,3 +1,4 @@
+'use client';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { createReactBlockSpec } from '@blocknote/react';
 import type { BlockConfig } from '@blocknote/core';
@@ -96,7 +97,7 @@ function ProductCardRowEditor({
             className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/50 px-3 py-1 text-xs text-foreground"
           >
             <a
-              href={`/products/${slug}`}
+              href={`/product/${slug}`}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline"

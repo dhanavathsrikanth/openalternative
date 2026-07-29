@@ -61,7 +61,7 @@ export function ContributionQueue({ contributions: initial }: Props) {
                 <div className="mb-4 flex items-start justify-between gap-4">
                   <div>
                     <Link
-                      href={`/products/${c.productSlug}`}
+                       href={`/product/${c.productSlug}`}
                       className="font-semibold hover:underline"
                     >
                       {c.productName}

@@ -8,9 +8,6 @@ import { createFaqAccordionBlockSpec } from './faq-accordion-block';
 import { createProductCardRowBlockSpec } from './product-card-row-block';
 import { createCustomDividerBlockSpec } from './divider-block';
 
-// createReactBlockSpec returns React-FC-based implementations whose render
-// signature differs from the raw-DOM BlockSpecs type. Cast via `as any` — the
-// runtime is fully compatible because BlockNote internally reconciles both.
 const customSpecs = {
   layout: createLayoutBlockSpec() as any,
   callout: createCalloutBlockSpec() as any,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySecret, unauthorized, runBatch } from '@/lib/ingest'
 import { fetchCrate } from '@/lib/fetchers/crates'
-import trackedRepos from '../../../../data/tracked-repos.json'
+import trackedRepos from '../../../../../data/tracked-repos.json'
 
 interface CratesCrate {
   name: string

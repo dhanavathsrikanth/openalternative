@@ -7,6 +7,7 @@ import { logAudit } from '@/lib/audit'
 import { resolveCanonical } from '@/lib/normalize/canonicalResolver'
 import { computeConfidenceScore } from '@/lib/scoring/confidenceScore'
 import { validatePublishable } from '@/lib/validation/product'
+import { checkScope } from '@/lib/validation/submission'
 import { detectTechFromGithub } from '@/lib/content-gen/tech-detect'
 import * as Sentry from '@sentry/nextjs'
 
@@ -86,6 +87,12 @@ export async function GET(req: NextRequest) {
         const isFork = (payload.fork as boolean) || false
         const lastPushedAt = payload.pushedAt ? new Date(payload.pushedAt as string) : null
         const defaultBranch = (payload.defaultBranch as string) || null
+        const contributorsCount = (payload.contributorsCount as number) || null
+        const latestRelease = payload.latestRelease as { tag: string; publishedAt: string } | null
+        const latestVersion = latestRelease?.tag ?? null
+        const firstReleaseYear = payload.createdAt
+          ? new Date(payload.createdAt as string).getFullYear()
+          : null
 
         // Detect tech stack from GitHub manifests (best-effort, non-blocking)
         let techStackDetected: unknown = null
@@ -137,6 +144,7 @@ export async function GET(req: NextRequest) {
 
         if (existing.length === 0) {
           // Insert new product
+          const scopeCheck = checkScope(canonical.name, canonical.description, techStackDetected)
           await db.insert(Products).values({
             name: canonical.name,
             slug: canonical.slug,
@@ -152,6 +160,9 @@ export async function GET(req: NextRequest) {
             watchers,
             topics,
             repoSize,
+            contributorsCount,
+            firstReleaseYear,
+            latestVersion,
             isArchived,
             isFork,
             lastPushedAt,
@@ -160,6 +171,7 @@ export async function GET(req: NextRequest) {
             scoreBreakdown: breakdown,
             techStackDetected,
             status: publishable ? 'published' : 'draft',
+            reviewFlags: scopeCheck.flagged ? scopeCheck.reasons : null,
             lastVerifiedAt: new Date(),
           })
           if (publishable) {
@@ -168,7 +180,7 @@ export async function GET(req: NextRequest) {
         } else {
           // Update existing product — keep the higher score
           const currentProduct = await db
-            .select({ confidenceScore: Products.confidenceScore })
+            .select({ confidenceScore: Products.confidenceScore, status: Products.status })
             .from(Products)
             .where(eq(Products.id, existing[0].id))
             .limit(1)
@@ -177,7 +189,11 @@ export async function GET(req: NextRequest) {
             ? parseFloat(currentProduct[0].confidenceScore)
             : 0
 
+          // Only auto-promote products that are currently in 'draft' status
+          const canAutoPromote = publishable && currentProduct[0]?.status === 'draft'
+
           if (score > currentScore) {
+            const scopeCheck = checkScope(canonical.name, canonical.description, techStackDetected)
             await db
               .update(Products)
               .set({
@@ -194,6 +210,9 @@ export async function GET(req: NextRequest) {
                 watchers,
                 topics,
                 repoSize,
+                contributorsCount,
+                firstReleaseYear,
+                latestVersion,
                 isArchived,
                 isFork,
                 lastPushedAt,
@@ -201,13 +220,14 @@ export async function GET(req: NextRequest) {
                 confidenceScore: String(score),
                 scoreBreakdown: breakdown,
                 techStackDetected,
-                // Promote draft to published once it qualifies
-                ...(publishable ? { status: 'published' as const } : {}),
+                // Only promote draft → published; never override rejected/delisted/pending_review/scheduled
+                ...(canAutoPromote ? { status: 'published' as const } : {}),
+                reviewFlags: scopeCheck.flagged ? scopeCheck.reasons : null,
                 lastVerifiedAt: new Date(),
                 updatedAt: new Date(),
               })
               .where(eq(Products.id, existing[0].id))
-            if (publishable) {
+            if (canAutoPromote) {
               await logAudit('system', 'product.published', 'product', canonical.slug, null, { slug: canonical.slug })
             }
           }

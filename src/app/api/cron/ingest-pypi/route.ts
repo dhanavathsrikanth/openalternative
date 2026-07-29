@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySecret, unauthorized, runBatch } from '@/lib/ingest'
 import { fetchPypiPackage } from '@/lib/fetchers/pypi'
-import trackedRepos from '../../../../data/tracked-repos.json'
+import trackedRepos from '../../../../../data/tracked-repos.json'
 
 interface PypiPackage {
   name: string

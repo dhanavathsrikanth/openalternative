@@ -32,8 +32,9 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
   const body = await req.json().catch(() => ({}))
   const newStatus = body.status as string
-  if (newStatus !== 'draft' && newStatus !== 'published') {
-    return NextResponse.json({ error: 'status must be "draft" or "published"' }, { status: 400 })
+  const VALID_STATUSES = ['draft', 'scheduled', 'pending_review', 'published', 'rejected', 'delisted'] as const
+  if (!VALID_STATUSES.includes(newStatus as typeof VALID_STATUSES[number])) {
+    return NextResponse.json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` }, { status: 400 })
   }
 
   const rows = await db
@@ -86,13 +87,13 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
   await db
     .update(Products)
-    .set({ status: newStatus, updatedAt: new Date() })
+    .set({ status: newStatus as typeof VALID_STATUSES[number], updatedAt: new Date() })
     .where(eq(Products.id, productId))
 
-  await logAudit(ctx.userId, `admin.product.${newStatus === 'published' ? 'published' : 'unpublished'}`, 'product', String(productId))
+  await logAudit(ctx.userId, `admin.product.status.${newStatus}`, 'product', String(productId))
 
   // ── ISR revalidation ────────────────────────────────────────────────
-  revalidatePath(`/products/${product.slug}`)
+  revalidatePath(`/product/${product.slug}`)
   revalidatePath('/')
   // Revalidate the category pages this product belongs to
   const catRows = await db

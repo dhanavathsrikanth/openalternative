@@ -84,6 +84,12 @@ const migrations = [
   '0018_seo_overrides.sql',
   '0019_add_stars_forks.sql',
   '0020_product_content.sql',
+  '0021_tech_stack_detected.sql',
+  '0023_add_content_blocks.sql',
+  '0026_update_product_status_enum.sql',
+  '0027_add_usable_today_and_review_flags.sql',
+  '0030_add_proprietary_tools_and_alternatives.sql',
+  '0032_add_proprietary_tools_slug.sql',
 ];
 
 const skipCodes = new Set([

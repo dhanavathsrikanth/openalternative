@@ -12,6 +12,8 @@ type Props = {
   initialSeoTitle: string | null
   initialSeoDescription: string | null
   initialSeoCanonicalUrl: string | null
+  initialUsableToday: boolean | null
+  initialReviewFlags: string[] | null
 }
 
 export function ProductEditor({
@@ -20,11 +22,14 @@ export function ProductEditor({
   initialSeoTitle,
   initialSeoDescription,
   initialSeoCanonicalUrl,
+  initialUsableToday,
+  initialReviewFlags,
 }: Props) {
   const [status, setStatus] = useState(initialStatus)
   const [seoTitle, setSeoTitle] = useState(initialSeoTitle ?? '')
   const [seoDescription, setSeoDescription] = useState(initialSeoDescription ?? '')
   const [seoCanonicalUrl, setSeoCanonicalUrl] = useState(initialSeoCanonicalUrl ?? '')
+  const [usableToday, setUsableToday] = useState(initialUsableToday)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -37,7 +42,7 @@ export function ProductEditor({
       const res = await fetch(`/api/admin/products/${productId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, seoTitle, seoDescription, seoCanonicalUrl }),
+        body: JSON.stringify({ status, seoTitle, seoDescription, seoCanonicalUrl, usableToday }),
       })
 
       if (!res.ok) {
@@ -69,9 +74,42 @@ export function ProductEditor({
           className="h-9 w-full max-w-xs rounded-md border bg-transparent px-3 text-sm"
         >
           <option value="draft">Draft</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="pending_review">Pending Review</option>
           <option value="published">Published</option>
+          <option value="rejected">Rejected</option>
+          <option value="delisted">Delisted</option>
         </select>
       </div>
+
+      {/* Usable Today checkbox */}
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="usableToday"
+          checked={usableToday === true}
+          onChange={(e) => setUsableToday(e.target.checked)}
+          className="h-4 w-4 rounded border"
+        />
+        <label htmlFor="usableToday" className="text-sm font-medium">
+          Product is usable today
+        </label>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Staff attestation: confirm the product is in a usable state (not a waitlist, placeholder, or coming-soon page).
+      </p>
+
+      {/* Review Flags */}
+      {initialReviewFlags && initialReviewFlags.length > 0 && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
+          <p className="mb-1 text-xs font-medium text-amber-800">Automated Review Flags:</p>
+          <ul className="list-disc space-y-0.5 pl-4 text-xs text-amber-700">
+            {initialReviewFlags.map((flag, i) => (
+              <li key={i}>{flag}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <label htmlFor="seoTitle" className="text-sm font-medium">

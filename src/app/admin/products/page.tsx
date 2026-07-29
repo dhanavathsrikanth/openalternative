@@ -27,7 +27,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
     )
   }
 
-  if (status === 'draft' || status === 'published') {
+  if (status === 'draft' || status === 'scheduled' || status === 'pending_review' || status === 'published' || status === 'rejected' || status === 'delisted') {
     conditions.push(sql`${Products.status} = ${status}`)
   }
 
@@ -133,7 +133,11 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
         >
           <option value="">All statuses</option>
           <option value="draft">Draft</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="pending_review">Pending Review</option>
           <option value="published">Published</option>
+          <option value="rejected">Rejected</option>
+          <option value="delisted">Delisted</option>
         </select>
         <select
           name="category"
@@ -191,8 +195,15 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
                   </div>
                 </td>
                 <td className="p-3">
-                  <Badge variant={product.status === 'published' ? 'success' : 'warning'}>
-                    {product.status}
+                  <Badge variant={
+                    product.status === 'published' ? 'success' :
+                    product.status === 'delisted' ? 'destructive' :
+                    product.status === 'rejected' ? 'destructive' :
+                    product.status === 'scheduled' ? 'info' :
+                    product.status === 'pending_review' ? 'warning' :
+                    'secondary'
+                  }>
+                    {product.status === 'pending_review' ? 'pending review' : product.status}
                   </Badge>
                 </td>
                 <td className="p-3 text-muted-foreground">

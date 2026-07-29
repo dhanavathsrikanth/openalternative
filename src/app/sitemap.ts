@@ -1,6 +1,6 @@
 import { db } from '@/app/db'
-import { Products, Categories, Comparisons, Guides } from '@/app/db/schema'
-import { eq } from 'drizzle-orm'
+import { Products, Categories, Comparisons, Guides, ProprietaryTools, ProductAlternatives } from '@/app/db/schema'
+import { eq, and, inArray } from 'drizzle-orm'
 import type { MetadataRoute } from 'next'
 
 const BASE_URL = 'https://forklane.dev'
@@ -46,19 +46,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.5,
     },
+    {
+      url: `${BASE_URL}/graveyard`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.4,
+    },
   ]
 
-  // Product pages
+  // Product pages (published + delisted — delisted pages must remain indexable for SEO continuity)
   const products = await db
     .select({
       slug: Products.slug,
       updatedAt: Products.updatedAt,
+      status: Products.status,
     })
     .from(Products)
-    .where(eq(Products.status, 'published'))
+    .where(inArray(Products.status, ['published', 'delisted']))
 
   const productPages: MetadataRoute.Sitemap = products.map((p) => ({
-    url: `${BASE_URL}/products/${p.slug}`,
+    url: `${BASE_URL}/product/${p.slug}`,
     lastModified: p.updatedAt,
     changeFrequency: 'weekly' as const,
     priority: 0.8,
@@ -86,10 +93,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })
     .from(Comparisons)
 
-  // Resolve product slugs for comparison URLs
+  // Resolve product slugs for comparison URLs (only published products)
   const allProducts = await db
     .select({ id: Products.id, slug: Products.slug })
     .from(Products)
+    .where(inArray(Products.status, ['published']))
 
   const slugById = new Map(allProducts.map((p) => [p.id, p.slug]))
 
@@ -123,5 +131,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
-  return [...staticPages, ...productPages, ...categoryPages, ...comparisonPages, ...guidePages]
+  // Proprietary tool alternatives pages (only tools with at least one published alternative)
+  const proprietaryToolSlugs = await db
+    .select({ slug: ProprietaryTools.slug })
+    .from(ProprietaryTools)
+    .innerJoin(ProductAlternatives, eq(ProprietaryTools.id, ProductAlternatives.proprietaryToolId))
+    .innerJoin(Products, and(eq(ProductAlternatives.productId, Products.id), eq(Products.status, 'published')))
+
+  const uniqueToolSlugs = [...new Set(proprietaryToolSlugs.map((t) => t.slug))]
+
+  const alternativesPages: MetadataRoute.Sitemap = uniqueToolSlugs.map((slug) => ({
+    url: `${BASE_URL}/alternatives-to/${slug}`,
+    lastModified: now,
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }))
+
+  return [...staticPages, ...productPages, ...categoryPages, ...comparisonPages, ...guidePages, ...alternativesPages]
 }

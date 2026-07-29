@@ -42,7 +42,7 @@ export default async function AdminReviewsPage() {
                 <td className="p-3">{r.id}</td>
                 <td className="p-3">
                   <Link
-                    href={`/products/${r.productSlug}`}
+                    href={`/product/${r.productSlug}`}
                     className="font-medium hover:underline"
                   >
                     {r.productName}

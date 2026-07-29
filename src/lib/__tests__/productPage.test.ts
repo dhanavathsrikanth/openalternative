@@ -210,7 +210,7 @@ describe('ProductJsonLd logic', () => {
       '@type': 'SoftwareApplication',
       name: product.name,
       description: product.description,
-      url: `https://forklane.dev/products/${product.slug}`,
+      url: `https://forklane.dev/product/${product.slug}`,
       applicationCategory: 'DeveloperApplication',
       operatingSystem: 'Cross-platform',
     }

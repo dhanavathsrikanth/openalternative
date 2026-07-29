@@ -1,3 +1,4 @@
+'use client';
 import { useState, useCallback } from 'react';
 import { createReactBlockSpec } from '@blocknote/react';
 import type { BlockConfig } from '@blocknote/core';

@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
       .map((p) => {
         const views = trafficMap.get(p.id) ?? 0
         return `<tr>
-          <td style="padding:6px 0;"><a href="https://forklane.dev/products/${p.slug}" style="color:#2563eb;text-decoration:none;">${p.name}</a></td>
+          <td style="padding:6px 0;"><a href="https://forklane.dev/product/${p.slug}" style="color:#2563eb;text-decoration:none;">${p.name}</a></td>
           <td style="padding:6px 0;text-align:right;font-variant-numeric:tabular-nums;">${views.toLocaleString()}</td>
         </tr>`
       })

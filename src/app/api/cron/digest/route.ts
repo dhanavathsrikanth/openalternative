@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       (p) => `
       <tr>
         <td style="padding:8px 0;">
-          <a href="${baseUrl}/products/${p.slug}" style="color:#2563eb;text-decoration:none;font-weight:500;">${p.name}</a>
+          <a href="${baseUrl}/product/${p.slug}" style="color:#2563eb;text-decoration:none;font-weight:500;">${p.name}</a>
           <span style="color:#6b7280;font-size:13px;margin-left:8px;">${p.primaryLanguage || ''}</span>
         </td>
       </tr>

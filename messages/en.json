@@ -1,0 +1,693 @@
+{
+  "Common": {
+    "brand": "Forklane",
+    "description": "Open-source software discovery platform",
+    "skipToContent": "Skip to content",
+    "searchPlaceholder": "Search…",
+    "search": "Search",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "mainNavigation": "Main navigation",
+    "mobileNavigation": "Mobile navigation",
+    "admin": "Admin",
+    "adminPanel": "Admin Panel",
+    "signIn": "Sign In",
+    "nav": {
+      "products": "Products",
+      "categories": "Categories",
+      "compare": "Compare",
+      "collections": "Collections",
+      "guides": "Guides"
+    },
+    "stat": {
+      "stars": "Stars",
+      "forks": "Forks"
+    }
+  },
+  "Footer": {
+    "column": {
+      "browse": "Browse",
+      "collections": "Collections",
+      "quickLinks": "Quick Links",
+      "community": "Community"
+    },
+    "popularCategories": "Popular Categories",
+    "popularAlternatives": "Popular Proprietary Software",
+    "submitTool": "Submit a tool",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "sitemap": "Sitemap",
+    "contributors": "Contributors",
+    "methodology": "Methodology",
+    "graveyard": "The Graveyard",
+    "copyright": "© {year} Forklane. All rights reserved.",
+    "builtWith": "Built with {builder}.",
+    "madeBy": "Made by {name}.",
+    "newsletter": {
+      "placeholder": "Enter your email",
+      "subscribe": "Subscribe",
+      "success": "Thanks for subscribing!",
+      "description": "Join our newsletter for weekly updates. Unsubscribe anytime."
+    }
+  },
+  "Home": {
+    "hero": {
+      "badge": "Now tracking {count} open-source alternatives",
+      "badgeSuffix": "updated {time}",
+      "headline1": "Find your next",
+      "headline2": "open-source alternative",
+      "description": "Every listing is backed by live GitHub and npm data — verified timestamps, real activity signals, and transparent confidence scores. No guesswork.",
+      "searchPlaceholder": "Search for tools, frameworks, licenses...",
+      "poweredBy": "Powered by Postgres full-text search — instant results, no tracking"
+    },
+    "trending": {
+      "heading": "Trending Alternatives",
+      "viewAll": "View all →",
+      "empty": {
+        "title": "No products published yet",
+        "description": "Products will appear here once they've been ingested and scored. Check back soon!",
+        "action": "Learn how scoring works"
+      }
+    },
+    "categories": {
+      "heading": "Popular Categories",
+      "viewAll": "All categories →",
+      "empty": {
+        "title": "No categories yet",
+        "description": "Categories are created as products are ingested. Check back soon!"
+      }
+    },
+    "recent": {
+      "heading": "Recently Updated",
+      "empty": {
+        "title": "No recent updates",
+        "description": "Product updates will appear here as they're processed."
+      }
+    }
+  },
+  "RelativeTime": {
+    "justNow": "just now",
+    "minutes": "{n}m ago",
+    "hours": "{n}h ago",
+    "yesterday": "yesterday",
+    "days": "{n}d ago"
+  },
+  "Newsletter": {
+    "hero": {
+      "placeholder": "you@example.com",
+      "subscribe": "Subscribe",
+      "success": "Thanks! You'll receive our weekly digest.",
+      "helper": "Free weekly digest, no spam."
+    },
+    "Signup": {
+      "heading": "Stay Updated",
+      "description": "Get a weekly digest of newly added and updated open-source alternatives.",
+      "placeholder": "you@example.com",
+      "submitting": "Subscribing...",
+      "submit": "Subscribe",
+      "success": "Thank you for subscribing! You'll receive our weekly digest."
+    }
+  },
+  "NotFound": {
+    "code": "404",
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "back": "Back to Forklane"
+  },
+  "Error": {
+    "title": "Something went wrong!",
+    "retry": "Try again"
+  },
+  "Search": {
+    "breadcrumb": {
+      "home": "Forklane",
+      "current": "Search"
+    },
+    "placeholder": "Search open-source alternatives...",
+    "filter": {
+      "allLicenses": "All licenses",
+      "allLanguages": "All languages",
+      "allDeployment": "All deployment"
+    },
+    "resultsCount": "{count, plural, =1 {# result found} other {# results found}}",
+    "noResults": "No results found. Try different search terms or filters.",
+    "emptyState": "Enter a search query to find open-source alternatives."
+  },
+  "Product": {
+    "breadcrumb": "Products",
+    "delisted": {
+      "title": "This project is no longer actively maintained or listed.",
+      "body": "It has been removed from search results, category pages, and related alternatives. This page is preserved for reference and SEO continuity.",
+      "date": "Delisted on {date}"
+    },
+    "hero": {
+      "alternativeTo": "Open source alternative to:",
+      "updated": "Updated {time}",
+      "visitWebsite": "Visit website",
+      "viewGithubRepo": "GitHub repo"
+    },
+    "sidebar": {
+      "migrationConfidence": "Migration Confidence",
+      "howCalculated": "How is this calculated?",
+      "deploymentMethods": "Deployment Methods",
+      "viewOnGithub": "View on GitHub",
+      "visitHomepage": "Visit Homepage →",
+      "docs": "Docs →",
+      "changelog": "Changelog →",
+      "community": "Community →",
+      "announcements": "Announcements",
+      "bookmark": "Save to bookmarks",
+      "repoStats": "Repository",
+      "stars": "Stars",
+      "forks": "Forks",
+      "license": "License",
+      "lastCommit": "Last commit",
+      "lastVerified": "Last verified",
+      "repository": "Repository",
+      "additionalDetails": "Details",
+      "primaryLanguage": "Language",
+      "openIssues": "Open issues",
+      "contributors": "Contributors",
+      "firstRelease": "First release",
+      "version": "Version",
+      "selfHosted": "Self-hosted",
+      "yes": "Yes",
+      "no": "No",
+      "categories": "Categories",
+      "tags": "Tags"
+    },
+    "lastVerified": "Last verified: {date}",
+    "skipIf": "Skip if:",
+    "strengths": "Strengths",
+    "tradeoffs": "Trade-offs",
+    "verified": "Verified",
+    "toc": {
+      "tldr": "TL;DR",
+      "whoItsFor": "Who it's for",
+      "theProblem": "The problem",
+      "howItSolvesIt": "How it solves it",
+      "strengthsTradeoffs": "Strengths & trade-offs",
+      "versusAlternatives": "Versus alternatives",
+      "installSelfHost": "Install & self-host",
+      "techStack": "Tech stack",
+      "faq": "FAQ",
+      "similarTools": "Similar tools"
+    },
+    "confidence": {
+      "notYetScored": "Not yet scored",
+      "high": "High",
+      "good": "Good",
+      "moderate": "Moderate",
+      "low": "Low"
+    },
+    "deployment": {
+      "noneDetected": "No deployment methods detected"
+    },
+    "license": {
+      "permissive": "Permissive license — compatible with most projects",
+      "reviewTerms": "Review license terms before adopting"
+    },
+    "install": {
+      "extracted": "Extracted",
+      "generated": "Generated",
+      "verify": "Verify"
+    },
+    "reviews": {
+      "heading": "Reviews",
+      "empty": "No reviews yet. Be the first!",
+      "anonymous": "Anonymous",
+      "signIn": "Sign in to leave a review.",
+      "writeReview": "Write a Review",
+      "rating": "Rating",
+      "yourReview": "Your review",
+      "placeholder": "Share your experience with this tool...",
+      "submitting": "Submitting...",
+      "submit": "Submit Review",
+      "success": "Thank you! Your review has been submitted.",
+      "error": "Failed to submit review"
+    },
+    "faq": {
+      "whatIs": "What is {name}?",
+      "whoIsFor": "Who is {name} for?",
+      "prosOf": "What are the pros of {name}?",
+      "consOf": "What are the cons of {name}?",
+      "migrateTo": "How do I migrate to {name}?"
+    },
+    "github": {
+      "heading": "GitHub Stats",
+      "stars": "Stars",
+      "forks": "Forks",
+      "issues": "Issues",
+      "language": "Language",
+      "lastPush": "Last push: {time}",
+      "moreTopics": "+{count} more",
+      "time": {
+        "today": "today",
+        "yesterday": "yesterday",
+        "daysAgo": "{count}d ago",
+        "monthsAgo": "{count}mo ago",
+        "yearsAgo": "{count}y ago"
+      }
+    },
+    "jsonLd": {
+      "migrationConfidenceScore": "Migration Confidence Score",
+      "howToInstall": "How to install"
+    },
+    "report": {
+      "heading": "Report an Issue",
+      "description": "Help us keep Forklane accurate. No source URL required — just tell us what's wrong.",
+      "issueLabel": "What's the issue?",
+      "selectReason": "Select a reason",
+      "reason": {
+        "brokenLink": "Broken Link",
+        "wrongCategory": "Wrong Category",
+        "outdated": "Outdated",
+        "other": "Other"
+      },
+      "detailsLabel": "Details (optional)",
+      "detailsPlaceholder": "Any additional context?",
+      "submitting": "Submitting...",
+      "submit": "Submit Report",
+      "thanks": "Thanks for reporting!",
+      "thanksBody": "Your report has been submitted. Our moderation team will review it shortly.",
+      "submitAnother": "Submit another report",
+      "submitError": "Failed to submit report",
+      "error": "Something went wrong"
+    },
+    "embed": {
+      "heading": "Embed badge",
+      "copy": "Copy snippet",
+      "copied": "Copied"
+    },
+    "claim": {
+      "heading": "Claim this product",
+      "description": "Prove your organization owns or maintains this project to display a verified badge.",
+      "methodDns": "DNS TXT Record",
+      "methodDnsHint": "requires access to your domain",
+      "methodGithub": "GitHub Organization",
+      "methodGithubHint": "must be a public member",
+      "starting": "Starting…",
+      "startVerification": "Start Verification",
+      "dnsInstructions": "Add this TXT record to your domain DNS:",
+      "dnsRecordType": "Record type: TXT on your root domain or subdomain.",
+      "githubInstructions": "Ensure your GitHub account is a public member of the organization that owns this repository.",
+      "githubSteps": "Go to GitHub → Settings → Organizations → verify public membership.",
+      "verifying": "Verifying…",
+      "verifyNow": "Verify Now",
+      "cancel": "Cancel",
+      "checking": "Checking verification…",
+      "tryAgain": "Try Again",
+      "startOver": "Start Over",
+      "alreadyClaimed": "This product has already been claimed by another organization.",
+      "alreadyClaimedContact": "If you believe this is an error, please contact support.",
+      "initError": "Failed to initiate claim.",
+      "networkError": "Network error. Please try again.",
+      "verifyError": "Verification failed."
+    },
+    "suggestEdit": {
+      "heading": "Suggest an Edit",
+      "thanks": "Thank you!",
+      "thanksBody": "Your suggestion has been submitted for review. A moderator will review it shortly.",
+      "sourceUrl": "Source URL",
+      "sourceUrlHint": "Link to evidence supporting your edit (GitHub issue, docs page, etc.)",
+      "submitting": "Submitting...",
+      "submit": "Submit Suggestion",
+      "submitError": "Failed to submit",
+      "error": "Something went wrong"
+    }
+  },
+  "Compare": {
+    "breadcrumb": "Compare",
+    "subtitle": "Side-by-side feature and migration confidence comparison",
+    "section": {
+      "heading": "Feature Comparison"
+    },
+    "table": {
+      "feature": "Feature",
+      "confidence": "Confidence"
+    },
+    "footer": {
+      "generated": "Comparison generated {date}"
+    },
+    "score": {
+      "high": "High",
+      "good": "Good",
+      "moderate": "Moderate",
+      "low": "Low",
+      "same": "Same"
+    }
+  },
+  "Categories": {
+    "heading": "Categories",
+    "breadcrumb": "Categories",
+    "count": "{count, plural, =1 {# product ranked by migration confidence} other {# products ranked by migration confidence}}",
+    "products": {
+      "heading": "Products",
+      "empty": "No products in this category yet."
+    },
+    "comparisons": {
+      "heading": "Comparisons",
+      "generated": "Generated {date}"
+    },
+    "index": {
+      "empty": "No categories have been created yet.",
+      "count": "{count, plural, =1 {# product} other {# products}}"
+    }
+  },
+  "Collections": {
+    "heading": "Collections",
+    "breadcrumb": "Collections",
+    "curation": {
+      "manual": "Manually curated",
+      "scoreAssisted": "Score-assisted"
+    },
+    "empty": "No products in this collection yet.",
+    "index": {
+      "empty": "No collections yet."
+    }
+  },
+  "Graveyard": {
+    "heading": "The Graveyard",
+    "breadcrumb": "The Graveyard",
+    "description": "A historical archive of delisted open-source alternatives. These projects are preserved for reference but are no longer actively maintained or listed.",
+    "count": "{count, plural, =1 {# delisted project} other {# delisted projects}}",
+    "empty": "No delisted projects yet. The graveyard is empty.",
+    "browseActive": "Browse active products →",
+    "reason": "Reason:",
+    "delistedDate": "Delisted {date}",
+    "lastUpdated": "Last updated {date}"
+  },
+  "Methodology": {
+    "heading": "Methodology",
+    "title": "Methodology — Migration Confidence Score",
+    "description": "How Forklane calculates migration confidence scores for open-source projects.",
+    "viewRaw": "View raw Markdown"
+  },
+  "Guides": {
+    "title": "Guides — Forklane",
+    "description": "In-depth guides on migrating to open-source alternatives.",
+    "heading": "Guides",
+    "breadcrumb": "Guides",
+    "empty": "No guides have been published yet."
+  },
+  "Submit": {
+    "heading": "Submit a Product",
+    "authRequired": {
+      "before": "You need to",
+      "link": "sign in",
+      "after": "as a contributor to submit a product."
+    },
+    "description": "Suggest an open-source alternative for inclusion in our directory. Submissions are reviewed by our team before publishing.",
+    "guidelines": {
+      "heading": "Submission Guidelines",
+      "intro": "Please review these requirements before submitting. Submissions that don't meet the criteria will be flagged or rejected during review.",
+      "rule1": {
+        "title": "1. Must be open-source",
+        "description": "The project must have a publicly accessible repository with a recognized open-source license (MIT, Apache-2.0, GPL, etc.)."
+      },
+      "rule2": {
+        "title": "2. Must be a real, functional project",
+        "description": "The project should have meaningful functionality, not be a boilerplate, starter template, or empty repository."
+      },
+      "rule3": {
+        "title": "3. Must have an active repository",
+        "description": "The repository should have recent commit activity, open issues, or community engagement showing it is actively developed or maintained."
+      },
+      "rule4": {
+        "title": "4. Unique value proposition",
+        "description": "The project should offer a clear alternative to an existing proprietary or popular tool. Duplicate submissions may be merged or declined."
+      },
+      "rule5": {
+        "title": "5. Accurate metadata",
+        "description": "Provide correct project name, description, repository URL, and categories. Inaccurate or misleading submissions will be rejected."
+      }
+    },
+    "form": {
+      "name": "Product Name *",
+      "nameMax": "(max 80 chars)",
+      "namePlaceholder": "e.g. CoolTool",
+      "tagline": "Tagline *",
+      "taglineMax": "(max 80 chars)",
+      "taglinePlaceholder": "e.g. Open-source alternative to ProprietaryTool",
+      "description": "Description *",
+      "descriptionMax": "(max 200 chars)",
+      "descriptionPlaceholder": "Brief description of what this product does and who it's for",
+      "repository": "Repository URL *",
+      "repositoryHelper": "Must be a public repo on GitHub, GitLab, Codeberg, or Bitbucket.",
+      "repositoryPlaceholder": "https://github.com/owner/repo",
+      "homepage": "Homepage URL",
+      "homepageRequired": "(optional but recommended)",
+      "homepageHelper": "A real project domain is preferred over deployment preview URLs.",
+      "homepagePlaceholder": "https://cooltool.dev",
+      "license": "License *",
+      "licensePlaceholder": "e.g. MIT, Apache-2.0, GPL-3.0",
+      "language": "Primary Language",
+      "languageRequired": "(optional)",
+      "languagePlaceholder": "e.g. TypeScript, Python",
+      "categories": "Categories *",
+      "categoriesHelper": "(select at least one)",
+      "tags": "Tags *",
+      "tagsHelper": "(select at least one)",
+      "errorHeader": "Please fix the following:",
+      "reviewFlags": "Notes from automated checks:",
+      "submitting": "Submitting...",
+      "submit": "Submit for Review",
+      "success": "Your product has been submitted for review! Our team will review it shortly.",
+      "networkError": "Network error. Please try again.",
+      "charCount": "{current}/{max}"
+    }
+  },
+  "Dashboard": {
+    "contributor": {
+      "breadcrumb": "Contributor Dashboard",
+      "heading": "Welcome, {name}",
+      "reputation": "Reputation Points",
+      "email": "Email",
+      "browseProducts": "Browse Products to Edit →"
+    },
+    "nav": {
+      "overview": "Overview",
+      "profile": "Profile",
+      "team": "Team",
+      "analytics": "Analytics",
+      "announcements": "Announcements"
+    },
+    "team": {
+      "heading": "Team",
+      "description": "Manage members and invitations for your organization.",
+      "invite": {
+        "heading": "Invite member",
+        "email": "Email address",
+        "role": "Role",
+        "sending": "Sending...",
+        "send": "Send Invite"
+      },
+      "members": {
+        "heading": "Members ({count})"
+      },
+      "role": {
+        "owner": "Owner",
+        "admin": "Admin",
+        "editor": "Editor",
+        "marketing": "Marketing",
+        "viewer": "Viewer"
+      },
+      "action": {
+        "edit": "Edit",
+        "remove": "Remove",
+        "cancel": "Cancel",
+        "lastOwner": "Last Owner"
+      },
+      "tooltip": {
+        "changeRole": "Change role",
+        "removeMember": "Remove member",
+        "cannotRemoveLastOwner": "Cannot remove the last owner"
+      },
+      "pending": {
+        "heading": "Pending Invitations ({count})",
+        "invitedAs": "Invited as {role}",
+        "revoke": "Revoke"
+      },
+      "confirm": {
+        "removeMember": "Remove this member from the organization?"
+      },
+      "success": {
+        "roleUpdated": "Role updated",
+        "memberRemoved": "Member removed",
+        "inviteRevoked": "Invite revoked",
+        "inviteSent": "Invite sent to {email}"
+      }
+    },
+    "announcements": {
+      "heading": "Announcements",
+      "description": "Publish changelog-style posts for your claimed products.",
+      "cancel": "Cancel",
+      "new": "New Announcement",
+      "form": {
+        "product": "Product",
+        "title": "Title",
+        "body": "Body",
+        "titlePlaceholder": "e.g. v2.1.0 — New dashboard",
+        "bodyPlaceholder": "What changed, why it matters, migration notes...",
+        "publishing": "Publishing...",
+        "publish": "Publish Announcement"
+      },
+      "empty": "No announcements yet. Click 'New Announcement' to publish your first one.",
+      "status": {
+        "draft": "Draft"
+      }
+    }
+  },
+  "FAQ": {
+    "heading": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about Forklane.",
+    "contributorLink": "Sign up as a contributor",
+    "items": {
+      "whatIsForklane": {
+        "question": "What is Forklane?",
+        "answer": "Forklane is an open-source software discovery platform that helps developers find alternatives to proprietary tools. Every listing is backed by live GitHub and npm data with transparent confidence scores."
+      },
+      "howDecideTools": {
+        "question": "How are migration confidence scores calculated?",
+        "answer": "We analyze repository activity, community size, documentation quality, deployment options, and ecosystem compatibility to generate a confidence score for each alternative."
+      },
+      "areToolsFree": {
+        "question": "Can I submit my own project?",
+        "answer": "Yes! Sign up as a contributor and submit your open-source project. Our team reviews submissions before publishing to ensure quality and accuracy."
+      },
+      "howCurrent": {
+        "question": "How do I report an issue with a listing?",
+        "answer": "Use the report button on any product page to flag broken links, wrong categories, or outdated information. Our moderation team reviews reports promptly."
+      },
+      "howToList": {
+        "question": "Can I claim ownership of a product listing?",
+        "answer": "Yes. If you maintain or own a listed project, you can verify ownership via DNS TXT record or GitHub organization membership to display a verified badge."
+      },
+      "findReplacement": {
+        "question": "Is Forklane free to use?",
+        "answer": "Yes. Forklane is completely free and open-source. We don't track users or sell data. Our goal is to make open-source discovery accessible to everyone."
+      }
+    }
+  },
+  "ComparisonQA": {
+    "heading": "Frequently Asked Questions"
+  },
+  "Contributors": {
+    "heading": "Contributors",
+    "description": "People who help keep Forklane accurate",
+    "empty": "No contributors yet. Be the first!",
+    "table": {
+      "rank": "#",
+      "name": "Contributor",
+      "reputation": "Reputation",
+      "edits": "Edits",
+      "joined": "Joined"
+    }
+  },
+  "Products": {
+    "heading": "Products",
+    "empty": "No products have been published yet. Check back soon!"
+  },
+  "CompareIndex": {
+    "heading": "Comparisons",
+    "empty": "No comparisons have been generated yet. Check back soon!"
+  },
+  "ProductQA": {
+    "whatIs": "What is {name}?",
+    "whoIsItFor": "Who is {name} for?",
+    "pros": "What are the pros of {name}?",
+    "cons": "What are the cons of {name}?",
+    "howToMigrate": "How do I migrate to {name}?"
+  },
+  "Admin": {
+    "heading": "Admin Panel",
+    "dashboard": {
+      "heading": "Dashboard",
+      "totalProducts": "Total Products",
+      "draft": "Draft",
+      "published": "Published",
+      "categories": "Categories",
+      "missingLogo": "Products Missing Logo",
+      "viewAll": "View all products →",
+      "allHaveLogo": "All products have a logo.",
+      "table": {
+        "id": "ID",
+        "name": "Name",
+        "slug": "Slug",
+        "status": "Status",
+        "created": "Created"
+      },
+      "section": {
+        "content": "Content",
+        "comingSoon": "Coming Soon",
+        "moderation": "Moderation",
+        "administration": "Administration"
+      }
+    },
+    "nav": {
+      "overview": "Overview",
+      "products": "Products",
+      "categories": "Categories",
+      "tags": "Tags",
+      "collections": "Collections",
+      "reviews": "Reviews",
+      "contributions": "Contributions",
+      "organizations": "Organizations",
+      "auditLog": "Audit Log",
+      "reports": "Reports",
+      "staff": "Staff",
+      "users": "Users"
+    },
+    "badge": {
+      "soon": "Soon"
+    },
+    "confirm": {
+      "deleteAnnouncement": "Delete this announcement? This cannot be undone.",
+      "deleteReview": "Delete this review? This cannot be undone."
+    },
+    "button": {
+      "delete": "Delete"
+    },
+    "reports": {
+      "heading": "Reports Queue",
+      "count": "{count} pending report(s)",
+      "empty": "No pending reports. All caught up!",
+      "markResolved": "Mark Resolved",
+      "dismiss": "Dismiss",
+      "processing": "Processing..."
+    },
+    "contributions": {
+      "heading": "Contribution Queue",
+      "count": "{count} pending contribution(s)",
+      "empty": "No pending contributions. All caught up!",
+      "approve": "Approve",
+      "reject": "Reject",
+      "source": "Source: {url}"
+    }
+  },
+  "AlternativesTo": {
+    "heading": "Open Source Alternatives to {name}",
+    "description": "Discover the best open-source alternatives to {name}. Compare migration confidence, features, and community activity.",
+    "breadcrumb": {
+      "home": "Forklane",
+      "alternatives": "Alternatives"
+    },
+    "count": "{count, plural, =1 {# open-source alternative} other {# open-source alternatives}}",
+    "products": {
+      "heading": "Alternatives",
+      "empty": "No open-source alternatives have been added for {name} yet."
+    },
+    "viewAll": "View all alternatives →",
+    "viewOnGithub": "GitHub",
+    "visitWebsite": "Website"
+  },
+  "Validation": {
+    "email": "Valid email is required",
+    "rating": "Rating must be between 1 and 5",
+    "reviewLength": "Review must be at least 10 characters",
+    "atLeastOneChange": "At least one change is required",
+    "invalidSourceUrl": "Invalid source URL",
+    "titleRequired": "Title is required",
+    "bodyRequired": "Body is required"
+  }
+}

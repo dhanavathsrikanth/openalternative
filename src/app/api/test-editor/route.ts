@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/app/db';
 import { Products } from '@/app/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { validateContentBlocks } from '@/lib/validation/content-blocks';
 
 export async function GET(req: Request) {
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const rows = await db
     .select({ contentBlocks: Products.contentBlocks, name: Products.name })
     .from(Products)
-    .where(eq(Products.id, productId))
+    .where(and(eq(Products.id, productId), inArray(Products.status, ['published', 'delisted'])))
     .limit(1);
 
   if (rows.length === 0) {

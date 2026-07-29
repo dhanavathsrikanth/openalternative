@@ -165,5 +165,5 @@ export function getSlashMenuItems(
     },
   ];
 
-  return [...customItems, ...defaults];
+  return [...customItems, ...defaults.filter((d) => d.title !== 'Divider')];
 }

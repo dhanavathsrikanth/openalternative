@@ -1,5 +1,9 @@
+'use client'
+
 import Link from 'next/link'
 import type { Product } from '@/app/db/schema'
+import { BookmarkButton } from '@/components/BookmarkButton'
+import { useTranslations } from 'next-intl'
 
 interface Props {
   product: Pick<Product, 'id' | 'name' | 'slug' | 'description' | 'tagline' | 'license' | 'primaryLanguage' | 'confidenceScore'>
@@ -8,6 +12,8 @@ interface Props {
   forks?: number | null
   tags?: string[]
   topics?: string[]
+  /** When provided, renders a bookmark toggle button on the card */
+  bookmarked?: boolean
 }
 
 function formatStat(n: number | null | undefined): string {
@@ -17,17 +23,18 @@ function formatStat(n: number | null | undefined): string {
   return n.toLocaleString()
 }
 
-export function ProductCard({ product, logoUrl, stars, forks, tags, topics }: Props) {
+export function ProductCard({ product, logoUrl, stars, forks, tags, topics, bookmarked }: Props) {
+  const t = useTranslations('Common')
   const displayTags = tags?.slice(0, 3) ?? []
   const overflowCount = (tags?.length ?? 0) - 3
   const displayTopics = topics?.slice(0, 2) ?? []
 
   return (
     <Link
-      href={`/products/${product.slug}`}
+      href={`/product/${product.slug}`}
       className="group flex h-full flex-col rounded-2xl border border-card-border bg-card p-5 transition-colors duration-fast ease-out hover:bg-accent/50 card-lift"
     >
-      {/* Logo + Name */}
+      {/* Logo + Name + Bookmark */}
       <div className="mb-3 flex items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted text-muted-foreground">
           {logoUrl ? (
@@ -54,6 +61,15 @@ export function ProductCard({ product, logoUrl, stars, forks, tags, topics }: Pr
         <h3 className="truncate text-lg font-semibold text-foreground">
           {product.name}
         </h3>
+        {bookmarked !== undefined && (
+          <div className="ml-auto shrink-0">
+            <BookmarkButton
+              productId={product.id}
+              initialBookmarked={bookmarked}
+              stopPropagation
+            />
+          </div>
+        )}
       </div>
 
       {/* Stat row — stars & forks */}
@@ -62,7 +78,7 @@ export function ProductCard({ product, logoUrl, stars, forks, tags, topics }: Pr
           <svg className="size-3.5 shrink-0 text-yellow-500" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
-          <span className="font-medium uppercase tracking-wide">Stars</span>
+          <span className="font-medium uppercase tracking-wide">{t('stat.stars')}</span>
           <span className="tabular-nums">{formatStat(stars)}</span>
         </span>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-card-border bg-secondary/50 px-2.5 py-0.5 text-xs text-muted-foreground">
@@ -73,7 +89,7 @@ export function ProductCard({ product, logoUrl, stars, forks, tags, topics }: Pr
             <path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9" />
             <path d="M12 12v3" />
           </svg>
-          <span className="font-medium uppercase tracking-wide">Forks</span>
+          <span className="font-medium uppercase tracking-wide">{t('stat.forks')}</span>
           <span className="tabular-nums">{formatStat(forks)}</span>
         </span>
       </div>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySecret, unauthorized, runBatch } from '@/lib/ingest'
 import { fetchNpmPackage } from '@/lib/fetchers/npm'
-import trackedRepos from '../../../../data/tracked-repos.json'
+import trackedRepos from '../../../../../data/tracked-repos.json'
 
 interface NpmPackage {
   name: string

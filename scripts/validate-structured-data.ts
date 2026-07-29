@@ -173,7 +173,7 @@ async function main() {
       '@type': 'SoftwareApplication',
       name: product.name,
       description: 'Product page',
-      url: `https://forklane.dev/products/${product.slug}`,
+      url: `https://forklane.dev/product/${product.slug}`,
       applicationCategory: 'DeveloperApplication',
       operatingSystem: 'Cross-platform',
     }

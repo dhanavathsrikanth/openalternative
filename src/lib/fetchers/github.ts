@@ -98,6 +98,7 @@ export interface GitHubRepoPayload {
   topics: string[]
   size: number
   latestRelease: { tag: string; publishedAt: string } | null
+  contributorsCount: number | null
   fetchedAt: string
 }
 
@@ -138,6 +139,28 @@ export async function fetchGitHubRepo(
     throw new Error(`GitHub repo not found: ${owner}/${repo}`)
   }
 
+  // Fetch contributors count via REST — use per_page=1 and parse Link header
+  let contributorsCount: number | null = null
+  try {
+    const contribRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/contributors?per_page=1&anon=false`,
+      { headers: headers(), signal },
+    )
+    if (contribRes.ok) {
+      const linkHeader = contribRes.headers.get('link')
+      const lastMatch = linkHeader?.match(/page=(\d+)>;\s*rel="last"/)
+      if (lastMatch) {
+        contributorsCount = parseInt(lastMatch[1], 10)
+      } else {
+        // Fewer than 30 contributors — count the actual items
+        const items = (await contribRes.json()) as unknown[]
+        contributorsCount = items.length
+      }
+    }
+  } catch {
+    // Contributors fetch is best-effort — must not block ingestion
+  }
+
   return {
     identifier: `${owner}/${repo}`,
     payload: {
@@ -165,6 +188,7 @@ export async function fetchGitHubRepo(
             publishedAt: r.latestRelease.publishedAt,
           }
         : null,
+      contributorsCount,
       fetchedAt: new Date().toISOString(),
     },
   }

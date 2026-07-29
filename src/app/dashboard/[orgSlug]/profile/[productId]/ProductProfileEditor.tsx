@@ -266,7 +266,7 @@ export function ProductProfileEditor({
           {saving ? 'Saving…' : 'Save Changes'}
         </button>
         <a
-          href={`/products/${productSlug}`}
+          href={`/product/${productSlug}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"

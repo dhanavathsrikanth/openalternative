@@ -18,7 +18,7 @@ import { eq } from 'drizzle-orm';
 // ── Enums ────────────────────────────────────────────────────────────────
 
 export const sourceEnum = pgEnum('source', ['github', 'npm', 'pypi', 'crates']);
-export const productStatusEnum = pgEnum('product_status', ['draft', 'published']);
+export const productStatusEnum = pgEnum('product_status', ['draft', 'scheduled', 'pending_review', 'published', 'rejected', 'delisted']);
 export const curationTypeEnum = pgEnum('curation_type', ['manual', 'score_assisted']);
 export const contributionStatusEnum = pgEnum('contribution_status', ['pending', 'approved', 'rejected']);
 export const claimMethodEnum = pgEnum('claim_method', ['dns_txt', 'github_org']);
@@ -102,12 +102,16 @@ export const Products = pgTable(
     watchers: integer('watchers'),
     topics: text('topics').array(),
     repoSize: integer('repo_size'),
+    contributorsCount: integer('contributors_count'),
+    firstReleaseYear: integer('first_release_year'),
+    latestVersion: text('latest_version'),
     isArchived: boolean('is_archived').default(false).notNull(),
     isFork: boolean('is_fork').default(false).notNull(),
     confidenceScore: numeric('confidence_score'),
     scoreBreakdown: jsonb('score_breakdown'),
     techStackDetected: jsonb('tech_stack_detected'),
     status: productStatusEnum('status').default('draft').notNull(),
+    publishAt: timestamp('publish_at'),
     claimedByOrgId: integer('claimed_by_org_id').references(() => Organizations.id, { onDelete: 'set null' }),
     lastPushedAt: timestamp('last_pushed_at'),
     defaultBranch: text('default_branch'),
@@ -117,6 +121,10 @@ export const Products = pgTable(
     seoCanonicalUrl: text('seo_canonical_url'),
     contentBlocks: jsonb('content_blocks'),
     contentUpdatedAt: timestamp('content_updated_at'),
+    delistReason: text('delist_reason'),
+    delistedAt: timestamp('delisted_at'),
+    usableToday: boolean('usable_today'),
+    reviewFlags: jsonb('review_flags'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
@@ -253,6 +261,7 @@ export const Guides = pgTable(
     description: text('description'),
     body: text('body'),
     status: productStatusEnum('status').default('draft').notNull(),
+    publishAt: timestamp('publish_at'),
     authorName: text('author_name').notNull(),
     authorBio: text('author_bio'),
     authorAvatarUrl: text('author_avatar_url'),
@@ -449,6 +458,48 @@ export const ProductContent = pgTable('product_content', {
   unique('product_content_product_type_unique').on(t.productId, t.contentType),
 ]);
 
+// ── Bookmarks (personal, per-user saves) ────────────────────────────────
+
+export const Bookmarks = pgTable(
+  'bookmarks',
+  {
+    userId: text('user_id')
+      .references(() => Users.id, { onDelete: 'cascade' })
+      .notNull(),
+    productId: integer('product_id')
+      .references(() => Products.id, { onDelete: 'cascade' })
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.productId] })],
+);
+
+// ── Proprietary Tools (reference table for "alternative to" claims) ─────
+
+export const ProprietaryTools = pgTable('proprietary_tools', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull(),
+  url: text('url'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [uniqueIndex('proprietary_tools_slug_idx').on(t.slug)]);
+
+// ── Product Alternatives (join: product ↔ proprietary tool) ─────────────
+
+export const ProductAlternatives = pgTable(
+  'product_alternatives',
+  {
+    productId: integer('product_id')
+      .references(() => Products.id, { onDelete: 'cascade' })
+      .notNull(),
+    proprietaryToolId: integer('proprietary_tool_id')
+      .references(() => ProprietaryTools.id, { onDelete: 'cascade' })
+      .notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.productId, t.proprietaryToolId] })],
+);
+
 // ── Types ────────────────────────────────────────────────────────────────
 
 export type User = typeof Users.$inferSelect;
@@ -473,3 +524,6 @@ export type ProductAsset = typeof ProductAssets.$inferSelect;
 export type AuditLog = typeof AuditLogs.$inferSelect;
 export type ProductContent = typeof ProductContent.$inferSelect;
 export type Report = typeof Reports.$inferSelect;
+export type Bookmark = typeof Bookmarks.$inferSelect;
+export type ProprietaryTool = typeof ProprietaryTools.$inferSelect;
+export type ProductAlternative = typeof ProductAlternatives.$inferSelect;

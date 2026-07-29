@@ -82,7 +82,7 @@ export default async function AdminOrganizationDetailPage({ params }: Props) {
                     <td className="p-3">{claim.id}</td>
                     <td className="p-3">
                       <Link
-                        href={`/products/${claim.productSlug}`}
+                        href={`/product/${claim.productSlug}`}
                         className="font-medium hover:underline"
                       >
                         {claim.productName}
@@ -113,7 +113,7 @@ export default async function AdminOrganizationDetailPage({ params }: Props) {
           <ul className="space-y-2">
             {claimedProducts.map((p) => (
               <li key={p.id} className="rounded-lg border bg-card p-3">
-                <Link href={`/products/${p.slug}`} className="font-medium hover:underline">
+                <Link href={`/product/${p.slug}`} className="font-medium hover:underline">
                   {p.name}
                 </Link>
               </li>

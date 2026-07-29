@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/app/db'
-import { Products, ProductCategories, ProductTags } from '@/app/db/schema'
+import { Products, ProductCategories, ProductTags, ProductAlternatives } from '@/app/db/schema'
 import { eq, sql } from 'drizzle-orm'
 import { requireStaff } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { toSlug } from '@/lib/normalize/canonicalResolver'
 import { validateContentBlocks } from '@/lib/validation/content-blocks'
+import { validateForgeUrl } from '@/lib/validation/submission'
 
 export async function POST(req: NextRequest) {
   let ctx
@@ -76,6 +77,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Forge URL validation (soft — warn but don't block admin creation)
+  if (githubUrl) {
+    const forgeResult = validateForgeUrl(githubUrl)
+    if (!forgeResult.valid) {
+      return NextResponse.json(
+        { error: forgeResult.error },
+        { status: 422 },
+      )
+    }
+  }
+
   const [product] = await db
     .insert(Products)
     .values({
@@ -112,6 +124,14 @@ export async function POST(req: NextRequest) {
   if (tagIds.length > 0) {
     await db.insert(ProductTags).values(
       tagIds.map((tagId) => ({ productId: product.id, tagId }))
+    )
+  }
+
+  // Proprietary tool alternatives assignment
+  const proprietaryToolIds: number[] = Array.isArray(body.proprietaryToolIds) ? body.proprietaryToolIds.map(Number) : []
+  if (proprietaryToolIds.length > 0) {
+    await db.insert(ProductAlternatives).values(
+      proprietaryToolIds.map((proprietaryToolId) => ({ productId: product.id, proprietaryToolId }))
     )
   }
 

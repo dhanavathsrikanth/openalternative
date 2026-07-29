@@ -1,5 +1,5 @@
 import { db } from '@/app/db'
-import { Products, Organizations, ProductAssets, ProductContent, ProductCategories, ProductTags, Categories, Tags } from '@/app/db/schema'
+import { Products, Organizations, ProductAssets, ProductContent, ProductCategories, ProductTags, ProductAlternatives, ProprietaryTools, Categories, Tags } from '@/app/db/schema'
 import { eq } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -35,7 +35,7 @@ export default async function AdminProductPage({ params }: PageProps) {
     orgName = org?.name ?? null
   }
 
-  const [assets, initialCategoryIds, initialTagIds, allCategories, allTags, contentRows] = await Promise.all([
+  const [assets, initialCategoryIds, initialTagIds, allCategories, allTags, contentRows, initialProprietaryToolIds, allProprietaryTools] = await Promise.all([
     db.select().from(ProductAssets).where(eq(ProductAssets.productId, productId)),
     db.select({ categoryId: ProductCategories.categoryId })
       .from(ProductCategories)
@@ -48,6 +48,11 @@ export default async function AdminProductPage({ params }: PageProps) {
     db.select({ id: Categories.id, name: Categories.name, slug: Categories.slug }).from(Categories).orderBy(Categories.name),
     db.select({ id: Tags.id, name: Tags.name, slug: Tags.slug }).from(Tags).orderBy(Tags.name),
     db.select().from(ProductContent).where(eq(ProductContent.productId, productId)),
+    db.select({ proprietaryToolId: ProductAlternatives.proprietaryToolId })
+      .from(ProductAlternatives)
+      .where(eq(ProductAlternatives.productId, productId))
+      .then((rows) => rows.map((r) => r.proprietaryToolId)),
+    db.select({ id: ProprietaryTools.id, name: ProprietaryTools.name, url: ProprietaryTools.url }).from(ProprietaryTools).orderBy(ProprietaryTools.name),
   ])
 
   return (
@@ -77,6 +82,8 @@ export default async function AdminProductPage({ params }: PageProps) {
         initialProduct={product}
         initialCategoryIds={initialCategoryIds}
         initialTagIds={initialTagIds}
+        initialProprietaryToolIds={initialProprietaryToolIds}
+        allProprietaryTools={allProprietaryTools}
         initialAssets={assets.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() }))}
         allCategories={allCategories}
         allTags={allTags}

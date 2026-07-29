@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { Product } from '@/app/db/schema'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,7 @@ import { ContentPreview } from './ContentPreview'
 
 interface Category { id: number; name: string; slug: string }
 interface Tag { id: number; name: string; slug: string }
+interface ProprietaryTool { id: number; name: string; url: string | null }
 interface Asset { id: number; type: 'logo' | 'screenshot'; url: string; assetId: string; createdAt: string }
 
 export interface ProductEditorTabsProps {
@@ -19,9 +21,11 @@ export interface ProductEditorTabsProps {
   initialProduct?: Product
   initialCategoryIds?: number[]
   initialTagIds?: number[]
+  initialProprietaryToolIds?: number[]
   initialAssets?: Asset[]
   allCategories: Category[]
   allTags: Tag[]
+  allProprietaryTools: ProprietaryTool[]
   initialContentBlocks?: unknown[] | null
 }
 
@@ -32,16 +36,26 @@ export function ProductEditorTabs({
   initialProduct,
   initialCategoryIds = [],
   initialTagIds = [],
+  initialProprietaryToolIds = [],
   initialAssets = [],
   allCategories,
   allTags,
+  allProprietaryTools,
   initialContentBlocks = null,
 }: ProductEditorTabsProps) {
+  const router = useRouter()
   const isEdit = mode === 'edit'
   const [errors, setErrors] = useState<string[]>([])
   const [success, setSuccess] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [targetStatus, setTargetStatus] = useState<string>('published')
+  const [usableToday, setUsableToday] = useState<boolean | null>(
+    initialProduct?.usableToday ?? null
+  )
+  const [reviewFlags] = useState<string[] | null>(
+    (initialProduct?.reviewFlags as string[] | null) ?? null
+  )
 
   // Live blocks state for preview (updated on every editor change)
   const [liveBlocks, setLiveBlocks] = useState<unknown[]>(
@@ -55,7 +69,7 @@ export function ProductEditorTabs({
   } | null>(null)
 
   const contentEditorRef = useRef<{
-    saveImmediately: () => Promise<void>
+    saveImmediately: (overrideProductId?: number) => Promise<void>
     getBlocks: () => unknown[]
   } | null>(null)
 
@@ -86,7 +100,7 @@ export function ProductEditorTabs({
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(detailsPayload),
+        body: JSON.stringify({ ...detailsPayload, usableToday }),
       })
 
       const data = await res.json()
@@ -102,16 +116,23 @@ export function ProductEditorTabs({
 
       // 2. Save content (if we have a product ID)
       if (productId && contentEditorRef.current) {
-        await contentEditorRef.current.saveImmediately()
+        await contentEditorRef.current.saveImmediately(productId)
       }
 
       setSuccess(isEdit ? 'Saved!' : 'Created!')
+
+      // 3. In create mode, navigate to the edit URL so that:
+      //    - subsequent saves use PATCH (no duplicate products on re-save)
+      //    - the asset manager becomes available (logo upload required for publish)
+      if (!isEdit && data.product?.id) {
+        router.replace(`/admin/products/${data.product.id}`)
+      }
     } catch {
       setErrors(['Network error'])
     } finally {
       setSaving(false)
     }
-  }, [isEdit, initialProduct?.id])
+  }, [isEdit, initialProduct?.id, router])
 
   // ── Publish ─────────────────────────────────────────────────────────
   const handlePublish = useCallback(async () => {
@@ -144,7 +165,7 @@ export function ProductEditorTabs({
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...detailsPayload, status: 'published' }),
+        body: JSON.stringify({ ...detailsPayload, status: targetStatus, usableToday }),
       })
 
       const data = await res.json()
@@ -157,11 +178,11 @@ export function ProductEditorTabs({
 
       // 2. Save content
       if (finalId && contentEditorRef.current) {
-        await contentEditorRef.current.saveImmediately()
+        await contentEditorRef.current.saveImmediately(finalId)
       }
 
       // 3. Trigger publish endpoint for ISR
-      if (finalId) {
+      if (finalId && targetStatus === 'published') {
         await fetch(`/api/admin/products/${finalId}/publish`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -169,16 +190,19 @@ export function ProductEditorTabs({
         })
       }
 
-      setSuccess('Published!')
+      setSuccess(targetStatus === 'published' ? 'Published!' : targetStatus === 'pending_review' ? 'Submitted for review!' : 'Saved!')
       if (!isEdit && data.product?.id) {
         setCreatedProductId(data.product.id)
+        // Navigate to the edit page for the freshly created product so that
+        // the user lands on the canonical editor (asset manager, PATCH saves).
+        router.replace(`/admin/products/${data.product.id}`)
       }
     } catch {
       setErrors(['Network error during publish'])
     } finally {
       setPublishing(false)
     }
-  }, [isEdit, initialProduct?.id, createdProductId])
+  }, [isEdit, initialProduct?.id, createdProductId, targetStatus, router])
 
   const effectiveProductId = createdProductId
 
@@ -216,15 +240,45 @@ export function ProductEditorTabs({
           >
             {saving ? 'Saving…' : isEdit ? 'Save Draft' : 'Create Draft'}
           </Button>
+          <select
+            value={targetStatus}
+            onChange={(e) => setTargetStatus(e.target.value)}
+            className="h-8 rounded-md border bg-transparent px-2 text-xs"
+          >
+            <option value="published">Publish</option>
+            <option value="pending_review">Submit for Review</option>
+            <option value="scheduled">Schedule</option>
+            <option value="rejected">Reject</option>
+          </select>
           <Button
             onClick={handlePublish}
             disabled={saving || publishing}
             size="sm"
           >
-            {publishing ? 'Publishing…' : 'Publish'}
+            {publishing ? 'Saving…' : targetStatus === 'published' ? 'Publish' : targetStatus === 'pending_review' ? 'Submit' : 'Save'}
           </Button>
         </div>
       </div>
+
+      {/* Usable Today checkbox + Review Flags */}
+      {isEdit && (
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={usableToday === true}
+              onChange={(e) => setUsableToday(e.target.checked)}
+              className="h-4 w-4 rounded border"
+            />
+            Product is usable today
+          </label>
+          {reviewFlags && reviewFlags.length > 0 && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-700">
+              {reviewFlags.length} review flag{reviewFlags.length !== 1 ? 's' : ''}: {reviewFlags[0]}{reviewFlags.length > 1 ? ` (+${reviewFlags.length - 1} more)` : ''}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Tab content ──────────────────────────────────────────────── */}
       <TabsContent value="details">
@@ -234,14 +288,20 @@ export function ProductEditorTabs({
           initialProduct={initialProduct}
           initialCategoryIds={initialCategoryIds}
           initialTagIds={initialTagIds}
+          initialProprietaryToolIds={initialProprietaryToolIds}
           initialAssets={initialAssets}
           allCategories={allCategories}
           allTags={allTags}
+          allProprietaryTools={allProprietaryTools}
         />
       </TabsContent>
 
+      {/* ContentEditor is a client-only BlockNote component.
+          Direct import is safe here because ProductEditorTabs is already
+          a 'use client' component — SSR is not attempted for this tree. */}
       <TabsContent value="content">
         <ContentEditor
+          ref={contentEditorRef}
           productId={effectiveProductId}
           initialContentBlocks={initialContentBlocks}
           onBlocksChange={setLiveBlocks}
@@ -252,6 +312,7 @@ export function ProductEditorTabs({
         <ContentPreview
           product={initialProduct}
           blocks={liveBlocks}
+          logoUrl={initialAssets.find((a) => a.type === 'logo')?.url ?? null}
         />
       </TabsContent>
     </Tabs>

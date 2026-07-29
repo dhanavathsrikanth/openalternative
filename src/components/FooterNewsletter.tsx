@@ -6,8 +6,10 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { newsletterSchema, type NewsletterInput } from '@/lib/validation'
 import { Button } from '@/components/ui/button'
+import { useTranslations } from 'next-intl'
 
 export function FooterNewsletter() {
+  const t = useTranslations('Footer.newsletter')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -45,7 +47,7 @@ export function FooterNewsletter() {
   if (success) {
     return (
       <p className="text-xs text-success">
-        Thanks for subscribing!
+        {t('success')}
       </p>
     )
   }
@@ -56,7 +58,7 @@ export function FooterNewsletter() {
       <div className="flex w-full rounded-radius-input border border-border-default bg-surface transition-[border-color,box-shadow] duration-normal ease-out focus-within:outline-2 focus-within:outline-border/50 focus-within:border-ring">
         <input
           type="email"
-          placeholder="Enter your email"
+          placeholder={t('placeholder')}
           className="min-h-0 flex-1 border-0 bg-surface px-3 py-2 text-[0.8125rem]/tight text-text-primary placeholder:text-text-tertiary outline-none rounded-l-radius-input md:text-body-sm"
           aria-label="Email address"
           {...register('email')}
@@ -69,11 +71,11 @@ export function FooterNewsletter() {
           aria-label="Subscribe to newsletter"
           className="m-0.5 shrink-0 rounded-radius-button px-3 py-1.5"
         >
-          <span className="flex-1 truncate text-center">Subscribe</span>
+          <span className="flex-1 truncate text-center">{t('subscribe')}</span>
         </Button>
       </div>
       <p className="text-xs text-text-tertiary order-first">
-        Join our newsletter for weekly updates. Unsubscribe anytime.
+        {t('description')}
       </p>
       {error && (
         <p className="text-xs text-destructive">{error}</p>

@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
       fork: payload.fork,
       pushedAt: payload.pushedAt,
       latestRelease: payload.latestRelease,
+      contributorsCount: payload.contributorsCount,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

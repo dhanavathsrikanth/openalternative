@@ -7,6 +7,7 @@ import type { Product } from '@/app/db/schema'
 interface ContentPreviewProps {
   product: Product | undefined
   blocks: unknown[]
+  logoUrl?: string | null
 }
 
 type ViewportSize = 'desktop' | 'mobile'
@@ -16,13 +17,12 @@ const VIEWPORT_WIDTHS: Record<ViewportSize, string> = {
   mobile: '375px',
 }
 
-export function ContentPreview({ product, blocks }: ContentPreviewProps) {
+export function ContentPreview({ product, blocks, logoUrl }: ContentPreviewProps) {
   const [viewport, setViewport] = useState<ViewportSize>('desktop')
 
   const name = product?.name ?? 'Product Name'
   const tagline = product?.tagline ?? ''
   const description = product?.description ?? ''
-  const logoUrl = (product as any)?.logoUrl ?? null
   const stars = product?.stars ?? null
   const forks = product?.forks ?? null
 

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/app/db'
-import { Products, ProductCategories, ProductTags, ProductAssets } from '@/app/db/schema'
+import { Products, ProductCategories, ProductTags, ProductAssets, ProductAlternatives } from '@/app/db/schema'
 import { eq, sql } from 'drizzle-orm'
 import { requireStaff } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { validatePublishable } from '@/lib/validation/product'
 import { validateContentBlocks } from '@/lib/validation/content-blocks'
+import { validateForgeUrl, checkHomepage } from '@/lib/validation/submission'
 import { revalidatePath } from 'next/cache'
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -73,9 +74,25 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     updateData.contentUpdatedAt = new Date()
   }
 
+  // Usable Today (staff attestation checkbox)
+  if ('usableToday' in body) {
+    updateData.usableToday = body.usableToday === true
+  }
+
+  // Review Flags (jsonb — automated validation flags)
+  if ('reviewFlags' in body) {
+    updateData.reviewFlags = Array.isArray(body.reviewFlags) ? body.reviewFlags : null
+  }
+
   // Status
-  if ('status' in body && (body.status === 'draft' || body.status === 'published')) {
+  const VALID_STATUSES = ['draft', 'scheduled', 'pending_review', 'published', 'rejected', 'delisted'] as const
+  if ('status' in body && VALID_STATUSES.includes(body.status)) {
     updateData.status = body.status
+  }
+
+  // PublishAt (for scheduled products)
+  if ('publishAt' in body) {
+    updateData.publishAt = body.publishAt ? new Date(body.publishAt) : null
   }
 
   // ── Publish gate ────────────────────────────────────────────────────
@@ -98,6 +115,20 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       .where(eq(ProductAssets.productId, productId))
       .limit(1)
 
+    // Forge URL validation (hard block)
+    const githubUrl = (merged.githubUrl as string) ?? before.githubUrl
+    const forgeResult = validateForgeUrl(githubUrl)
+    if (!forgeResult.valid) {
+      return NextResponse.json(
+        { error: 'Repository validation failed', missing: [forgeResult.error!] },
+        { status: 422 },
+      )
+    }
+
+    // Homepage check (flag for review, don't block at API level but warn)
+    const homepageUrl = (merged.homepageUrl as string) ?? before.homepageUrl
+    const homepageResult = checkHomepage(homepageUrl)
+
     const errors = validatePublishable({
       name: merged.name,
       slug: merged.slug,
@@ -113,6 +144,11 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
         { error: 'Product is not ready to publish', missing: errors },
         { status: 422 },
       )
+    }
+
+    if (homepageResult.flagged) {
+      // Log the flag for audit but don't block
+      await logAudit(ctx.userId, 'product.review_flag', 'product', String(productId), null, { reason: homepageResult.reason })
     }
   }
 
@@ -149,6 +185,17 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     }
   }
 
+  // ── Proprietary tool alternatives assignment ────────────────────────
+  if ('proprietaryToolIds' in body && Array.isArray(body.proprietaryToolIds)) {
+    const newToolIds: number[] = body.proprietaryToolIds.map(Number)
+    await db.delete(ProductAlternatives).where(eq(ProductAlternatives.productId, productId))
+    if (newToolIds.length > 0) {
+      await db.insert(ProductAlternatives).values(
+        newToolIds.map((proprietaryToolId) => ({ productId, proprietaryToolId }))
+      )
+    }
+  }
+
   const after = await db
     .select()
     .from(Products)
@@ -159,13 +206,13 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
   // ── ISR revalidation ────────────────────────────────────────────────
   const slug = (updateData.slug as string) ?? before.slug
-  revalidatePath(`/products/${slug}`)
+  revalidatePath(`/product/${slug}`)
   revalidatePath('/')
 
   return NextResponse.json({ success: true })
 }
 
-export async function DELETE(_req: NextRequest, { params }: RouteContext) {
+export async function DELETE(req: NextRequest, { params }: RouteContext) {
   let ctx
   try {
     ctx = await requireStaff()
@@ -191,12 +238,35 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
 
   const before = rows[0]
 
-  await db.delete(Products).where(eq(Products.id, productId))
+  // Delist instead of hard-delete for previously-published products
+  if (before.status === 'published' || before.status === 'delisted') {
+    let delistReason: string | null = null
+    try {
+      const body = await req.json()
+      delistReason = typeof body.delistReason === 'string' ? body.delistReason : null
+    } catch {
+      // No body or invalid JSON — delistReason stays null
+    }
 
-  await logAudit(ctx.userId, 'admin.product.deleted', 'product', String(productId), before)
-
-  // ISR: revalidate homepage since a product was removed
-  revalidatePath('/')
+    const now = new Date()
+    await db
+      .update(Products)
+      .set({
+        status: 'delisted',
+        delistReason,
+        delistedAt: before.delistedAt ?? now,
+        updatedAt: now,
+      })
+      .where(eq(Products.id, productId))
+    await logAudit(ctx.userId, 'admin.product.delisted', 'product', String(productId), before, { delistReason })
+    revalidatePath(`/product/${before.slug}`)
+    revalidatePath('/')
+    revalidatePath('/graveyard')
+  } else {
+    await db.delete(Products).where(eq(Products.id, productId))
+    await logAudit(ctx.userId, 'admin.product.deleted', 'product', String(productId), before)
+    revalidatePath('/')
+  }
 
   return NextResponse.json({ success: true })
 }

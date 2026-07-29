@@ -166,7 +166,7 @@ export async function PATCH(req: Request, { params }: RouteContext): Promise<Nex
   }
 
   // On-demand ISR revalidation
-  revalidatePath(`/products/${product.slug}`)
+  revalidatePath(`/product/${product.slug}`)
 
   return NextResponse.json({ message: 'Profile updated', edits: edits.length })
 }

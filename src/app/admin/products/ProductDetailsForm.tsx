@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 
 interface Category { id: number; name: string; slug: string }
 interface Tag { id: number; name: string; slug: string }
+interface ProprietaryTool { id: number; name: string; url: string | null }
 interface Asset { id: number; type: 'logo' | 'screenshot'; url: string; assetId: string; createdAt: string }
 interface FaqEntry { question: string; answer: string }
 
@@ -19,9 +20,11 @@ interface Props {
   initialProduct?: Product
   initialCategoryIds?: number[]
   initialTagIds?: number[]
+  initialProprietaryToolIds?: number[]
   initialAssets?: Asset[]
   allCategories: Category[]
   allTags: Tag[]
+  allProprietaryTools: ProprietaryTool[]
 }
 
 export interface ProductDetailsFormHandle {
@@ -50,9 +53,11 @@ export const ProductDetailsForm = forwardRef<ProductDetailsFormHandle, Props>(
       initialProduct,
       initialCategoryIds = [],
       initialTagIds = [],
+      initialProprietaryToolIds = [],
       initialAssets = [],
       allCategories,
       allTags,
+      allProprietaryTools,
     },
     ref,
   ) {
@@ -73,6 +78,8 @@ export const ProductDetailsForm = forwardRef<ProductDetailsFormHandle, Props>(
     const [primaryLanguage, setPrimaryLanguage] = useState(initialProduct?.primaryLanguage ?? '')
     const [categoryIds, setCategoryIds] = useState<number[]>(initialCategoryIds)
     const [tagIds, setTagIds] = useState<number[]>(initialTagIds)
+    const [proprietaryToolIds, setProprietaryToolIds] = useState<number[]>(initialProprietaryToolIds)
+    const [toolSearch, setToolSearch] = useState('')
     const [faq, setFaq] = useState<FaqEntry[]>((initialProduct?.faq as FaqEntry[] | null) ?? [])
     const [seoTitle, setSeoTitle] = useState(initialProduct?.seoTitle ?? '')
     const [seoDescription, setSeoDescription] = useState(initialProduct?.seoDescription ?? '')
@@ -102,6 +109,33 @@ export const ProductDetailsForm = forwardRef<ProductDetailsFormHandle, Props>(
     const toggleTagId = useCallback((id: number) => {
       setTagIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
     }, [])
+
+    const toggleProprietaryToolId = useCallback((id: number) => {
+      setProprietaryToolIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
+    }, [])
+
+    const addNewTool = useCallback(async () => {
+      const name = toolSearch.trim()
+      if (!name) return
+      try {
+        const res = await fetch('/api/admin/proprietary-tools', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        })
+        const data = await res.json()
+        if (res.ok && data.tool) {
+          setProprietaryToolIds((prev) => [...prev, data.tool.id])
+          setToolSearch('')
+        } else if (res.status === 409 && data.id) {
+          // Tool already exists — just select it
+          setProprietaryToolIds((prev) => [...prev, data.id])
+          setToolSearch('')
+        }
+      } catch {
+        // Silently fail
+      }
+    }, [toolSearch])
 
     // ── Fetch from GitHub ────────────────────────────────────────────
     const handleFetchGithub = useCallback(async () => {
@@ -169,11 +203,12 @@ export const ProductDetailsForm = forwardRef<ProductDetailsFormHandle, Props>(
       primaryLanguage: primaryLanguage.trim() || null,
       categoryIds,
       tagIds,
+      proprietaryToolIds,
       faq: faq.filter((e) => e.question && e.answer),
       seoTitle: seoTitle.trim() || null,
       seoDescription: seoDescription.trim() || null,
       seoCanonicalUrl: seoCanonicalUrl.trim() || null,
-    }), [name, slug, tagline, description, githubUrl, homepageUrl, docsUrl, changelogUrl, communityUrl, license, primaryLanguage, categoryIds, tagIds, faq, seoTitle, seoDescription, seoCanonicalUrl])
+    }), [name, slug, tagline, description, githubUrl, homepageUrl, docsUrl, changelogUrl, communityUrl, license, primaryLanguage, categoryIds, tagIds, proprietaryToolIds, faq, seoTitle, seoDescription, seoCanonicalUrl])
 
     // ── Client-side validation (exposed via ref) ──────────────────────
     const runValidation = useCallback((): string[] => {
@@ -359,6 +394,77 @@ export const ProductDetailsForm = forwardRef<ProductDetailsFormHandle, Props>(
                   <span className="text-xs text-muted-foreground">No tags created yet.</span>
                 )}
               </div>
+            </div>
+          </section>
+
+          {/* ── Open Source Alternatives To ─────────────────────────────── */}
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold border-b pb-2">Open Source Alternatives To</h2>
+            <p className="text-xs text-muted-foreground">
+              List the proprietary tools this product replaces. These appear on the public product page.
+            </p>
+
+            <div>
+              <label className="text-sm font-medium">Selected Tools</label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {proprietaryToolIds.map((id) => {
+                  const tool = allProprietaryTools.find((t) => t.id === id)
+                  return tool ? (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => toggleProprietaryToolId(id)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-brand/50 bg-brand/10 px-3 py-1 text-xs font-medium text-brand transition-colors hover:bg-brand/20"
+                    >
+                      {tool.name}
+                      <span className="text-brand/60">&times;</span>
+                    </button>
+                  ) : null
+                })}
+                {proprietaryToolIds.length === 0 && (
+                  <span className="text-xs text-muted-foreground">No tools selected.</span>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Search or Create Tool</label>
+              <div className="flex gap-2 mt-1">
+                <Input
+                  value={toolSearch}
+                  onChange={(e) => setToolSearch(e.target.value)}
+                  placeholder="e.g. Datadog, New Relic..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addNewTool()
+                    }
+                  }}
+                />
+                <Button type="button" variant="outline" size="sm" onClick={addNewTool} disabled={!toolSearch.trim()}>
+                  + Add
+                </Button>
+              </div>
+              {toolSearch.trim() && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {allProprietaryTools
+                    .filter((t) =>
+                      t.name.toLowerCase().includes(toolSearch.toLowerCase()) &&
+                      !proprietaryToolIds.includes(t.id)
+                    )
+                    .slice(0, 8)
+                    .map((tool) => (
+                      <button
+                        key={tool.id}
+                        type="button"
+                        onClick={() => toggleProprietaryToolId(tool.id)}
+                        className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-brand hover:text-brand"
+                      >
+                        + {tool.name}
+                      </button>
+                    ))}
+                </div>
+              )}
             </div>
           </section>
 
